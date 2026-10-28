@@ -1,0 +1,21 @@
+{
+  "name": "html-css-js-web-view-apk-template",
+  "version": "1.0.0",
+  "description": "Turn any HTML/CSS/JS website into an installable Android app. No Kotlin, no Android SDK on your machine — just drop your site into `assets/` and get an APK.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/devAbdullahAlMasum/Html-Css-Js-Web-View-Apk-Template.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/devAbdullahAlMasum/Html-Css-Js-Web-View-Apk-Template/issues"
+  },
+  "homepage": "https://github.com/devAbdullahAlMasum/Html-Css-Js-Web-View-Apk-Template#readme"
+}

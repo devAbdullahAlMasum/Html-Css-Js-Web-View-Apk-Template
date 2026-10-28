@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en" data-theme="chess">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+    <meta name="color-scheme" content="light" />
+    <title>Speech Tracker</title>
+  </head>
+  <body>
+<section id="setup" class="screen active">
+  <div class="max-w-[680px] mx-auto px-4 pt-6 pb-12">
+    <div class="flex items-center gap-3 mb-6">
+      <div class="w-12 h-12 bg-white border-2 border-black rounded-lg grid place-items-center flex-none">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" class="w-7 h-7">
+          <circle cx="12" cy="13" r="8"></circle>
+          <path d="M12 9v4l2.5 1.5"></path>
+          <path d="M9 2h6"></path>
+          <path d="M12 2v3"></path>
+        </svg>
+      </div>
+      <div>
+        <h1 class="text-2xl font-extrabold text-black leading-tight">Speech Tracker</h1>
+        <div class="text-sm font-bold text-black opacity-80">Event speech timer &amp; results</div>
+      </div>
+    </div>
+
+    <div class="flat-card">
+      <label class="flat-label" for="eventName">Event name</label>
+      <input type="text" id="eventName" class="flat-input" placeholder="e.g. Model UN — Round 3" autocomplete="off">
+    </div>
+
+    <div class="flat-card">
+      <label class="flat-label" for="jsonInput">Candidates JSON</label>
+      <textarea id="jsonInput" class="flat-input" spellcheck="false" placeholder='{
+  "candidates": [
+    { "name": "Aisha Rahman", "time": 180 },
+    { "name": "Rakib Hasan", "time": "2:30" }
+  ]
+}'></textarea>
+      <div class="flex gap-2.5 flex-wrap items-center mt-3">
+        <button class="flat-btn-ghost" id="sampleBtn" type="button">Load sample</button>
+        <button class="flat-btn-ghost" id="clearBtn" type="button">Clear</button>
+      </div>
+      <div id="setupMsg" class="mt-2.5 text-sm min-h-[17px] font-bold text-red-700 whitespace-pre-wrap"></div>
+    </div>
+
+    <div class="flat-card">
+      <button class="flat-btn w-full" id="startBtn" type="button">Create event &amp; start</button>
+      <div id="resumeBox" style="display:none" class="mt-3">
+        <button class="flat-btn-ghost w-full" id="resumeBtn" type="button">Resume active event</button>
+      </div>
+    </div>
+
+    <div class="flat-card">
+      <div class="flex items-center justify-between gap-3 py-2.5">
+        <span class="font-bold text-sm">Sound cues</span>
+        <div class="flex gap-2.5 items-center">
+          <button class="flat-btn-ghost !px-3 !py-1.5 text-sm" id="testBtn" type="button" title="Test sound">♪ Test</button>
+          <input type="checkbox" id="soundToggle" class="toggle toggle-primary" checked>
+        </div>
+      </div>
+      <div class="flex items-center justify-between gap-3 py-2.5 border-t-2 border-black">
+        <span class="font-bold text-sm">Keep screen awake</span>
+        <input type="checkbox" id="wakeToggle" class="toggle toggle-primary" checked>
+      </div>
+    </div>
+
+    <div class="flat-card">
+      <label class="flat-label">Recent events</label>
+      <ul id="recentList" class="list-none m-0 p-0"></ul>
+    </div>
+
+  </div>
+</section>
+
+<section id="stage" class="screen">
+  <div class="stage-center">
+    <div class="timer" id="timerBox">
+      <span class="tnum" id="minVal">00</span>
+      <span class="tcolon">:</span>
+      <span class="tnum" id="secVal">00</span>
+    </div>
+    <div class="candidate" id="candidateName"></div>
+  </div>
+  <div class="intro-name" id="introName"></div>
+  <div class="overlay" id="allDone">
+    <div>
+      <div class="done-mark">✓</div>
+      <div class="done-title">All speeches completed</div>
+    </div>
+  </div>
+</section>
+
+<section id="results" class="screen">
+  <div class="max-w-[680px] mx-auto px-4 pt-5 pb-12">
+    <div class="flex items-center gap-3 mb-4">
+      <div class="w-11 h-11 bg-white border-2 border-black rounded-lg grid place-items-center flex-none">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6">
+          <path d="M4 19h16"></path>
+          <path d="M7 16V9"></path>
+          <path d="M12 16V5"></path>
+          <path d="M17 16v-4"></path>
+        </svg>
+      </div>
+      <div>
+        <h1 id="resTitle" class="text-lg font-extrabold text-black leading-tight">Results</h1>
+        <div id="resDate" class="text-xs font-bold text-black opacity-80"></div>
+      </div>
+    </div>
+    <div class="grid grid-cols-3 gap-2.5 mb-3.5">
+      <div class="bg-white border-2 border-black rounded-lg p-3 text-center">
+        <b id="statCount" class="block text-lg font-extrabold">0</b>
+        <span class="text-[10.5px] uppercase tracking-wider font-bold opacity-70">Speeches</span>
+      </div>
+      <div class="bg-white border-2 border-black rounded-lg p-3 text-center">
+        <b id="statTime" class="block text-lg font-extrabold">0:00</b>
+        <span class="text-[10.5px] uppercase tracking-wider font-bold opacity-70">Time used</span>
+      </div>
+      <div class="bg-white border-2 border-black rounded-lg p-3 text-center">
+        <b id="statLeft" class="block text-lg font-extrabold">0:00</b>
+        <span class="text-[10.5px] uppercase tracking-wider font-bold opacity-70">Time left</span>
+      </div>
+    </div>
+    <div class="border-2 border-black rounded-lg overflow-hidden bg-white mb-4">
+      <table class="w-full border-collapse text-sm">
+        <thead>
+          <tr class="bg-white border-b-2 border-black">
+            <th class="px-2.5 py-2.5 text-left text-[10.5px] uppercase tracking-wider font-extrabold">#</th>
+            <th class="px-2.5 py-2.5 text-left text-[10.5px] uppercase tracking-wider font-extrabold">Candidate</th>
+            <th class="px-2.5 py-2.5 text-left text-[10.5px] uppercase tracking-wider font-extrabold">Limit</th>
+            <th class="px-2.5 py-2.5 text-left text-[10.5px] uppercase tracking-wider font-extrabold">Used</th>
+            <th class="px-2.5 py-2.5 text-left text-[10.5px] uppercase tracking-wider font-extrabold">Left</th>
+          </tr>
+        </thead>
+        <tbody id="resBody"></tbody>
+      </table>
+    </div>
+    <div class="flex gap-2.5 flex-wrap">
+      <button class="flat-btn flex-1 min-w-[150px]" id="newEventBtn" type="button">New event</button>
+      <button class="flat-btn-ghost" id="copyBtn" type="button">Copy JSON</button>
+    </div>
+  </div>
+</section>
+
+<div class="toast" id="toast"></div>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

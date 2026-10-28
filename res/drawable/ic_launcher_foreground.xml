@@ -4,20 +4,24 @@
     android:viewportWidth="108"
     android:viewportHeight="108">
 
-    <!-- Balance scale: white with one gold pan -->
-    <!-- finial -->
-    <path android:fillColor="#FFFFFF" android:pathData="M51,24 a3,3 0 1,0 6,0 a3,3 0 1,0 -6,0 Z" />
-    <!-- beam -->
-    <path android:fillColor="#FFFFFF" android:pathData="M30,28 H78 V33 H30 Z" />
-    <!-- pole -->
-    <path android:fillColor="#FFFFFF" android:pathData="M51.5,33 H56.5 V76 H51.5 Z" />
-    <!-- base -->
-    <path android:fillColor="#FFFFFF" android:pathData="M40,76 H68 V82 H40 Z" />
-    <!-- hanger strings -->
-    <path android:fillColor="#00000000" android:strokeColor="#FFFFFF" android:strokeWidth="2.5" android:strokeLineCap="round" android:pathData="M36,33 L30,54 M36,33 L42,54" />
-    <path android:fillColor="#00000000" android:strokeColor="#FFFFFF" android:strokeWidth="2.5" android:strokeLineCap="round" android:pathData="M72,33 L66,54 M72,33 L78,54" />
-    <!-- left pan (white) -->
-    <path android:fillColor="#FFFFFF" android:pathData="M25,54 H43 L38,64 H30 Z" />
-    <!-- right pan (gold accent) -->
-    <path android:fillColor="#E8C87E" android:pathData="M65,54 H83 L78,64 H70 Z" />
+    <!-- Stopwatch: white body, black outline, black hands (flat, on green bg) -->
+    <!-- crown stem -->
+    <path android:fillColor="#000000" android:pathData="M51.5,28 H56.5 V36 H51.5 Z" />
+    <!-- crown top -->
+    <path android:fillColor="#000000" android:pathData="M48,24 H60 V29 H48 Z" />
+    <!-- body outer (black ring) -->
+    <path android:fillColor="#000000" android:pathData="M26,60 a28,28 0 1,0 56,0 a28,28 0 1,0 -56,0 Z" />
+    <!-- body inner (white face) -->
+    <path android:fillColor="#FFFFFF" android:pathData="M30,60 a24,24 0 1,0 48,0 a24,24 0 1,0 -48,0 Z" />
+    <!-- hour hand (up) -->
+    <path android:fillColor="#000000" android:pathData="M52.5,44 H55.5 V58 H52.5 Z" />
+    <!-- minute hand (right) -->
+    <path android:fillColor="#000000" android:pathData="M54,56.5 H66 V59.5 H54 Z" />
+    <!-- center dot -->
+    <path android:fillColor="#000000" android:pathData="M51,57 a3,3 0 1,0 6,0 a3,3 0 1,0 -6,0 Z" />
+    <!-- tick marks -->
+    <path android:fillColor="#000000" android:pathData="M53,38 H55 V42 H53 Z" />
+    <path android:fillColor="#000000" android:pathData="M53,70 H55 V74 H53 Z" />
+    <path android:fillColor="#000000" android:pathData="M35,53.5 H39 V55.5 H35 Z" />
+    <path android:fillColor="#000000" android:pathData="M69,53.5 H73 V55.5 H69 Z" />
 </vector>

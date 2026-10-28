@@ -1,4 +1,4 @@
-package com.fazlerabbi.porimap;
+package com.event.speechtracker;
 
 import android.annotation.TargetApi;
 import android.app.Activity;
