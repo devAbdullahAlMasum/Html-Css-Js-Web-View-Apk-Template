@@ -60,6 +60,23 @@
         </div>
       </div>
       <div class="flex items-center justify-between gap-3 py-2.5 border-t-2 border-black">
+        <span class="font-bold text-sm">Beep style</span>
+        <select id="sfxSelect" class="flat-input" style="width:auto;padding:8px 10px;font-size:14px;font-weight:700">
+          <option value="sharp">Sharp</option>
+          <option value="classic">Classic</option>
+          <option value="soft">Soft</option>
+          <option value="digital">Digital (Mixkit)</option>
+          <option value="buzzer">Buzzer (Mixkit)</option>
+        </select>
+      </div>
+      <div class="flex items-center justify-between gap-3 py-2.5 border-t-2 border-black">
+        <span class="font-bold text-sm">Clock numbers</span>
+        <select id="numLang" class="flat-input" style="width:auto;padding:8px 10px;font-size:14px;font-weight:700">
+          <option value="en">0 1 2 3</option>
+          <option value="bn">০ ১ ২ ৩</option>
+        </select>
+      </div>
+      <div class="flex items-center justify-between gap-3 py-2.5 border-t-2 border-black">
         <span class="font-bold text-sm">Keep screen awake</span>
         <input type="checkbox" id="wakeToggle" class="toggle toggle-primary" checked>
       </div>
@@ -83,6 +100,15 @@
     <div class="candidate" id="candidateName"></div>
   </div>
   <div class="intro-name" id="introName"></div>
+  <div class="ctx-wrap" id="ctxWrap" hidden>
+    <div class="ctx-menu" id="ctxMenu">
+      <button class="ctx-item" data-add="15">Add 15s</button>
+      <button class="ctx-item" data-add="30">Add 30s</button>
+      <button class="ctx-item" data-add="45">Add 45s</button>
+      <button class="ctx-item" data-add="60">Add 1m</button>
+      <button class="ctx-item ctx-item-close" id="ctxClose">Close</button>
+    </div>
+  </div>
   <div class="overlay" id="allDone">
     <div>
       <div class="done-mark">✓</div>
@@ -121,15 +147,15 @@
         <span class="text-[10.5px] uppercase tracking-wider font-bold opacity-70">Time left</span>
       </div>
     </div>
-    <div class="border-2 border-black rounded-lg overflow-hidden bg-white mb-4">
-      <table class="w-full border-collapse text-sm">
+    <div class="border-2 border-black rounded-lg bg-white mb-4 overflow-x-auto">
+      <table class="res-table">
         <thead>
           <tr class="bg-white border-b-2 border-black">
-            <th class="px-2.5 py-2.5 text-left text-[10.5px] uppercase tracking-wider font-extrabold">#</th>
-            <th class="px-2.5 py-2.5 text-left text-[10.5px] uppercase tracking-wider font-extrabold">Candidate</th>
-            <th class="px-2.5 py-2.5 text-left text-[10.5px] uppercase tracking-wider font-extrabold">Limit</th>
-            <th class="px-2.5 py-2.5 text-left text-[10.5px] uppercase tracking-wider font-extrabold">Used</th>
-            <th class="px-2.5 py-2.5 text-left text-[10.5px] uppercase tracking-wider font-extrabold">Left</th>
+            <th class="c-rank">#</th>
+            <th class="c-name">Candidate</th>
+            <th class="c-num">Limit</th>
+            <th class="c-num">Used</th>
+            <th class="c-num">Left</th>
           </tr>
         </thead>
         <tbody id="resBody"></tbody>
