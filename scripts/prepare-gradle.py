@@ -54,8 +54,10 @@ android {
     }
 
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_8
-        targetCompatibility JavaVersion.VERSION_1_8
+        // NewPipeExtractor v0.27.1 contains Java records. Java 17 also makes AGP 8.5.2
+        // enable global synthetics so D8 can desugar those records below API 35.
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
         coreLibraryDesugaringEnabled true
     }
 
