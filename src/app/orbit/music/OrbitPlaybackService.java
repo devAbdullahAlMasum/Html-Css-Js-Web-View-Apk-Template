@@ -649,7 +649,7 @@ public final class OrbitPlaybackService extends Service {
                 java.util.Map<String, String> headers = new java.util.HashMap<String, String>();
                 headers.put("User-Agent", USER_AGENT);
                 headers.put("Referer", "https://www.youtube.com/");
-                prepared.setDataSource(source, headers);
+                prepared.setDataSource(this, Uri.parse(source), headers);
             } else {
                 throw new JSONException("Unsupported media URI");
             }
@@ -1624,7 +1624,7 @@ public final class OrbitPlaybackService extends Service {
                 android.R.drawable.ic_media_next, "Next",
                 servicePendingIntent("next", 3)).build());
         builder.addAction(new Notification.Action.Builder(
-                android.R.drawable.ic_media_stop, "Stop",
+                R.drawable.ic_media_stop, "Stop",
                 servicePendingIntent("stop", 4)).build());
         if (mediaSession != null) {
             builder.setStyle(new Notification.MediaStyle()

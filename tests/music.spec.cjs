@@ -301,13 +301,15 @@ test('confirmation cancel is safe and agents cannot delete without a person', as
   await page.getByRole('alertdialog').getByRole('button', { name: 'Cancel', exact: true }).click();
   await expect(page.locator('#playlistGrid .playlist-card')).toHaveCount(1);
   await page.locator('#playlistGrid [data-action="delete-playlist"]').click();
+  await expect(page.getByRole('alertdialog')).toBeVisible();
   const denied = await page.evaluate(async () => {
-    const entry = window.OrbitAgent.snapshot().find(item => item.confirm && item.actions.includes('press'));
-    if (!entry) return { ok: true, error: 'No confirmation-marked control' };
-    const result = await window.OrbitAgent.act({ steps: [{ ref: entry.ref, action: 'press', args: [] }] });
+    const entry = window.OrbitAgent.snapshot().find(item => item.component === 'alert-dialog' && item.buttons?.includes('Delete playlist') && item.actions.includes('press'));
+    if (!entry) return { ok: true, error: 'No alert-dialog press action' };
+    const result = await window.OrbitAgent.act({ steps: [{ ref: entry.ref, action: 'press', args: ['Delete playlist'] }] });
     return { ok: result.ok, error: result.error?.message };
   });
   expect(denied.ok, denied.error).toBe(false);
+  expect(denied.error).toContain('The person said no');
   await expect(page.locator('#playlistGrid .playlist-card')).toHaveCount(1);
 });
 
@@ -351,7 +353,8 @@ test('browser source settings reject HTTP and expose real missing-source errors'
   await page.getByRole('button', { name: 'Close settings', exact: true }).click();
   await page.locator('#topSearchInput').fill('pixel horizons');
   await page.locator('#topSearchForm [data-action="submit-search"]').click();
-  await expect(page.locator('#searchResults')).toContainText('No search source');
+  await expect(page.locator('#searchStatus')).toContainText('No search source');
+  await expect(page.locator('#searchResults .song-row')).toHaveCount(0);
 });
 
 test('agent settings and WebMCP use SDK callbacks, not synthetic clicks', async ({ page }) => {
@@ -461,7 +464,7 @@ for (const theme of ['midnight', 'daylight']) {
       await page.getByRole('button', { name: 'Close settings', exact: true }).click();
     }
     const report = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
-    expect(report.violations.map(violation => ({ id: violation.id, targets: violation.nodes.map(node => node.target) }))).toEqual([]);
+    expect(report.violations.map(violation => ({ id: violation.id, targets: violation.nodes.map(node => node.target), checks: violation.nodes.map(node => node.any.map(check => check.data)) }))).toEqual([]);
   });
 }
 

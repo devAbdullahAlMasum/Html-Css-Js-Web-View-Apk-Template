@@ -954,7 +954,7 @@ public class MainActivity extends Activity {
 
         if (requestCode == REQ_PLAY_NOTIFY) {
             if (grantResults.length == 0 || grantResults[0] != PackageManager.PERMISSION_GRANTED) {
-                toast("Playback notifications are off", "System media controls remain available.");
+                toast("Playback notifications are off. System media controls remain available.");
             }
             return;
         }
