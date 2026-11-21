@@ -12,6 +12,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.23.4
+
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -27,65 +31,12 @@ jobs:
         with:
           gradle-version: 8.7
 
-      - name: Generate Gradle build files (legacy layout)
+      - name: Prepare generated assets and Gradle project
         run: |
-          cat > settings.gradle <<'EOF'
-          pluginManagement {
-              repositories {
-                  google()
-                  mavenCentral()
-                  gradlePluginPortal()
-              }
-          }
-          dependencyResolutionManagement {
-              repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
-              repositories {
-                  google()
-                  mavenCentral()
-              }
-          }
-          rootProject.name = "Silicon"
-          include(":shell")
-          EOF
-          cat > build.gradle <<'EOF'
-          plugins {
-              id("com.android.application") version "8.5.2" apply false
-          }
-          EOF
-          mkdir -p shell
-          cat > shell/build.gradle <<'EOF'
-          plugins {
-              id("com.android.application")
-          }
-
-          android {
-              namespace = "com.fazlerabbi.silicon"
-              compileSdk = 34
-
-              defaultConfig {
-                  applicationId = "com.fazlerabbi.silicon"
-                  minSdk = 23
-                  targetSdk = 34
-                  versionCode = 6
-                  versionName = "1.5"
-              }
-
-              buildTypes {
-                  release {
-                      minifyEnabled = false
-                  }
-              }
-
-              sourceSets {
-                  getByName("main") {
-                      manifest.srcFile("../AndroidManifest.xml")
-                      java.srcDirs("../src")
-                      res.srcDirs("../res")
-                      assets.srcDirs("../app")
-                  }
-              }
-          }
-          EOF
+          python3 scripts/generate-audio.py
+          python3 scripts/generate-icons.py
+          python3 scripts/vendor-ui-sdk.py
+          python3 scripts/prepare-gradle.py
 
       - name: Patch manifest for Android 12+
         run: |
@@ -96,9 +47,9 @@ jobs:
       - run: gradle :shell:assembleDebug
 
       - name: Rename APK
-        run: mv shell/build/outputs/apk/debug/shell-debug.apk shell/build/outputs/apk/debug/Silicon.apk
+        run: mv shell/build/outputs/apk/debug/shell-debug.apk shell/build/outputs/apk/debug/Orbit.apk
 
       - uses: actions/upload-artifact@v4
         with:
-          name: Silicon
-          path: shell/build/outputs/apk/debug/Silicon.apk
+          name: Orbit
+          path: shell/build/outputs/apk/debug/Orbit.apk

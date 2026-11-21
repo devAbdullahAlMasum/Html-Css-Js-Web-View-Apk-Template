@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Splash: DARK theme. -->
-    <color name="splash_bg">#0A0D0C</color>
-    <color name="splash_text">#FFFFFF</color>
-    <color name="splash_dot">#1E2422</color>
-    <color name="splash_progress">#38BDF8</color>
-    <color name="splash_progress_track">#3338BDF8</color>
+    <color name="splash_bg">#15131B</color>
+    <color name="splash_text">#F4F1EA</color>
+    <color name="splash_dot">#302839</color>
+    <color name="splash_progress">#CCECA5</color>
+    <color name="splash_progress_track">#33CCECA5</color>
 </resources>

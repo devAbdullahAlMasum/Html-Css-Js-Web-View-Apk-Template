@@ -1,8 +1,7 @@
-package com.fazlerabbi.silicon;
+package app.orbit.music;
 
 import android.app.Activity;
 import android.content.Intent;
-import android.content.res.Configuration;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.os.Handler;
@@ -62,16 +61,9 @@ public class SplashActivity extends Activity {
         w.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
         w.setStatusBarColor(Color.TRANSPARENT);
 
-        boolean night =
-                (getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK)
-                        == Configuration.UI_MODE_NIGHT_YES;
-
         int flags = View.SYSTEM_UI_FLAG_LAYOUT_STABLE
                 | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN;
-        if (!night) {
-            // Dark icons on the light backdrop.
-            flags |= View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR;
-        }
+        // Splash backdrop stays dark in every theme, so keep light status-bar icons.
         w.getDecorView().setSystemUiVisibility(flags);
     }
 }

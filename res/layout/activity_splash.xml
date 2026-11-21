@@ -29,7 +29,7 @@
                 android:layout_width="220dp"
                 android:layout_height="220dp"
                 android:layout_gravity="center"
-                android:background="@drawable/splash_glow" />
+                android:background="@drawable/orbit_glow" />
 
             <!-- The real launcher icon, so splash and home screen match. -->
             <ImageView
@@ -45,11 +45,21 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="10dp"
-            android:letterSpacing="0.01"
+            android:letterSpacing="0.06"
             android:text="@string/app_name"
             android:textColor="@color/splash_text"
-            android:textSize="26sp"
+            android:textSize="32sp"
             android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:fontFamily="monospace"
+            android:letterSpacing="0.12"
+            android:text="YOUR LITTLE SOUND UNIVERSE"
+            android:textColor="#C9B5EF"
+            android:textSize="10sp" />
 
         <!-- Indeterminate horizontal loading bar. -->
         <ProgressBar

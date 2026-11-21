@@ -1,5 +1,11 @@
 # AGENTS.md — WebView APK Template
 
+## ui-sdk
+
+- Before using ui-sdk, follow the `ui-sdk` skill if it is installed and read https://ui-sdk.dev/web.md.
+- This project loads ui-sdk directly from https://ui-sdk.dev/web.js and https://ui-sdk.dev/web.css, with no build step.
+- Components register their custom-element tags when those tags first appear on the page.
+
 ## What this is
 
 Android WebView shell that packages a static HTML/CSS/JS app (`app/`) into an installable APK. Origin: 2022 on-device (APK Builder) template. Current: cloud-built via GitHub Actions, Android 6+ (API 23) compatible.

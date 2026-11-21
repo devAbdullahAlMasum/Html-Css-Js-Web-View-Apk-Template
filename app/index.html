@@ -1,933 +1,602 @@
-<!DOCTYPE html>
-<html lang="en">
-
+<!doctype html>
+<html lang="en" data-theme="midnight" data-motion="on">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Silicon</title>
-  <style>
-    :root {
-      --bg: #0b1020;
-      --card: #121a2e;
-      --card2: #0f1626;
-      --line: #243049;
-      --text: #e6edf7;
-      --muted: #8b9ab5;
-      --accent: #38bdf8;
-      --accent-dim: #0e7490;
-      --gold: #e8c87e;
-      --ok: #4ade80;
-      --bad: #f87171;
-      --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-    }
-
-    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-
-    html { background: var(--bg); }
-
-    body {
-      margin: 0;
-      padding: 18px 14px 40px;
-      background: radial-gradient(1200px 600px at 50% -10%, #16233d 0%, var(--bg) 60%);
-      color: var(--text);
-      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-      font-size: 15px;
-      line-height: 1.45;
-      -webkit-text-size-adjust: 100%;
-    }
-
-    header { max-width: 980px; margin: 0 auto 14px; }
-
-    h1 {
-      margin: 0;
-      font-size: 26px;
-      letter-spacing: -0.02em;
-    }
-
-    h1 .dot { color: var(--accent); }
-
-    .sub {
-      margin: 4px 0 0;
-      color: var(--muted);
-      font-size: 13.5px;
-    }
-
-    .status {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-      margin-top: 12px;
-    }
-
-    .chip {
-      font-family: var(--mono);
-      font-size: 11px;
-      padding: 5px 9px;
-      border-radius: 999px;
-      border: 1px solid var(--line);
-      background: #0e1627;
-      color: var(--muted);
-      white-space: nowrap;
-    }
-
-    .chip b { color: var(--text); font-weight: 600; }
-    .chip.ok b { color: var(--ok); }
-    .chip.bad b { color: var(--bad); }
-
-    main {
-      max-width: 980px;
-      margin: 0 auto;
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: 12px;
-    }
-
-    @media (min-width: 720px) {
-      main { grid-template-columns: 1fr 1fr; }
-      .wide { grid-column: 1 / -1; }
-    }
-
-    .card {
-      background: linear-gradient(180deg, var(--card) 0%, var(--card2) 100%);
-      border: 1px solid var(--line);
-      border-radius: 14px;
-      padding: 14px;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      min-width: 0;
-    }
-
-    .card h2 {
-      margin: 0;
-      font-size: 15px;
-      letter-spacing: -0.01em;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .num {
-      font-family: var(--mono);
-      font-size: 10px;
-      color: var(--gold);
-      border: 1px solid #3a3323;
-      background: #1b1710;
-      border-radius: 6px;
-      padding: 2px 5px;
-    }
-
-    .card p.note {
-      margin: 0;
-      color: var(--muted);
-      font-size: 12.5px;
-    }
-
-    .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
-
-    button {
-      font: inherit;
-      font-size: 13.5px;
-      font-weight: 600;
-      color: #04121c;
-      background: var(--accent);
-      border: 0;
-      border-radius: 10px;
-      padding: 9px 13px;
-      cursor: pointer;
-      transition: transform .06s ease, filter .15s ease;
-    }
-
-    button:active { transform: scale(.97); }
-    button:disabled { opacity: .45; cursor: not-allowed; }
-
-    button.ghost {
-      background: transparent;
-      color: var(--text);
-      border: 1px solid var(--line);
-    }
-
-    button.gold { background: var(--gold); }
-
-    input[type="text"], textarea {
-      width: 100%;
-      font: inherit;
-      font-size: 13.5px;
-      color: var(--text);
-      background: #0a1120;
-      border: 1px solid var(--line);
-      border-radius: 9px;
-      padding: 9px 10px;
-      outline: none;
-    }
-
-    input[type="text"]:focus, textarea:focus { border-color: var(--accent-dim); }
-
-    .out {
-      font-family: var(--mono);
-      font-size: 11.5px;
-      line-height: 1.55;
-      color: #b9c7e0;
-      background: #080e1a;
-      border: 1px solid var(--line);
-      border-radius: 9px;
-      padding: 9px 10px;
-      margin: 0;
-      white-space: pre-wrap;
-      word-break: break-word;
-      max-height: 190px;
-      overflow: auto;
-    }
-
-    .out:empty { display: none; }
-
-    video, canvas, img.preview {
-      width: 100%;
-      border-radius: 10px;
-      background: #000;
-      display: block;
-    }
-
-    video { aspect-ratio: 4 / 3; object-fit: cover; }
-
-    img.preview { max-height: 220px; object-fit: contain; background: #0a1120; }
-
-    .meter {
-      height: 8px;
-      border-radius: 999px;
-      background: #0a1120;
-      border: 1px solid var(--line);
-      overflow: hidden;
-    }
-
-    .meter > i {
-      display: block;
-      height: 100%;
-      width: 0%;
-      background: linear-gradient(90deg, var(--ok), var(--gold), var(--bad));
-      transition: width .08s linear;
-    }
-
-    table.kv {
-      width: 100%;
-      border-collapse: collapse;
-      font-family: var(--mono);
-      font-size: 11.5px;
-    }
-
-    table.kv td {
-      padding: 4px 0;
-      border-bottom: 1px solid #1a2337;
-      vertical-align: top;
-    }
-
-    table.kv td:first-child { color: var(--muted); width: 42%; }
-
-    ul.limits {
-      margin: 0;
-      padding-left: 18px;
-      color: var(--muted);
-      font-size: 12.5px;
-    }
-
-    ul.limits li { margin-bottom: 6px; }
-    ul.limits code { color: var(--gold); font-family: var(--mono); font-size: 11.5px; }
-
-    #log {
-      font-family: var(--mono);
-      font-size: 11.5px;
-      background: #080e1a;
-      border: 1px solid var(--line);
-      border-radius: 10px;
-      padding: 10px;
-      height: 170px;
-      overflow: auto;
-      white-space: pre-wrap;
-      word-break: break-word;
-    }
-
-    #log .t { color: #56678a; }
-    #log .i { color: var(--accent); }
-    #log .s { color: var(--ok); }
-    #log .w { color: var(--gold); }
-    #log .e { color: var(--bad); }
-
-    footer {
-      max-width: 980px;
-      margin: 18px auto 0;
-      color: #56678a;
-      font-size: 11.5px;
-      font-family: var(--mono);
-      text-align: center;
-    }
-  </style>
+  <meta name="theme-color" content="#15131b" />
+  <meta name="color-scheme" content="dark light" />
+  <title>ORBIT — Find your own orbit</title>
+  <script type="importmap">{"imports":{"https://ui-sdk.dev/web/":"./ui-sdk/web/"}}</script>
+  <link rel="stylesheet" href="https://ui-sdk.dev/web.css" />
+  <script type="module" src="https://ui-sdk.dev/web.js"></script>
+  <link rel="stylesheet" href="styles.css" />
+  <script defer src="app.js"></script>
 </head>
-
 <body>
-  <header>
-    <h1>Silicon<span class="dot">.</span></h1>
-    <p class="sub">What a bare WebView shell can do with zero third-party dependencies.</p>
-    <div class="status">
-      <span class="chip">secure ctx <b id="st-secure">?</b></span>
-      <span class="chip">origin <b id="st-origin">?</b></span>
-      <span class="chip">bridge <b id="st-bridge">?</b></span>
-      <span class="chip">dpr <b id="st-dpr">?</b></span>
+  <a class="skip-link" href="#mainContent">Skip to content</a>
+
+  <svg class="svg-sprite" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg">
+    <symbol id="i-home" viewBox="0 0 24 24"><path d="M3.5 10.4 12 3.5l8.5 6.9V21h-6v-6h-5v6h-6Z"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 4.5 4.5"/></symbol>
+    <symbol id="i-library" viewBox="0 0 24 24"><path d="M4 4.5h5v15H4zM11 4.5h4v15h-4zM17.2 5.4l3.6 14.2-4 .9L13.2 6.3z"/></symbol>
+    <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 3v12m-5-4.8 5 5 5-5M4 20.5h16"/></symbol>
+    <symbol id="i-settings" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.1"/><path d="M19.4 14.4a7.8 7.8 0 0 0 0-4.8l2-1.5-2-3.4-2.4 1a8.3 8.3 0 0 0-4.1-2.4L12.5 1h-4l-.4 2.3a8.3 8.3 0 0 0-4.1 2.4l-2.4-1-2 3.4 2 1.5a7.8 7.8 0 0 0 0 4.8l-2 1.5 2 3.4 2.4-1a8.3 8.3 0 0 0 4.1 2.4l.4 2.3h4l.4-2.3a8.3 8.3 0 0 0 4.1-2.4l2.4 1 2-3.4Z"/></symbol>
+    <symbol id="i-play" viewBox="0 0 24 24"><path d="M8 4.8 19.2 12 8 19.2Z" fill="currentColor" stroke="none"/></symbol>
+    <symbol id="i-pause" viewBox="0 0 24 24"><path d="M6.8 4.5h4v15h-4zM13.2 4.5h4v15h-4z" fill="currentColor" stroke="none"/></symbol>
+    <symbol id="i-prev" viewBox="0 0 24 24"><path d="M19 5.2 9.4 12 19 18.8Z" fill="currentColor" stroke="none"/><path d="M5 4.5v15" stroke-width="2.4"/></symbol>
+    <symbol id="i-next" viewBox="0 0 24 24"><path d="M5 5.2 14.6 12 5 18.8Z" fill="currentColor" stroke="none"/><path d="M19 4.5v15" stroke-width="2.4"/></symbol>
+    <symbol id="i-heart" viewBox="0 0 24 24"><path d="M12 20.4S3.8 15.4 3.8 9.6A4.8 4.8 0 0 1 12 6.3a4.8 4.8 0 0 1 8.2 3.3c0 5.8-8.2 10.8-8.2 10.8Z"/></symbol>
+    <symbol id="i-more" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.6" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none"/><circle cx="19" cy="12" r="1.6" fill="currentColor" stroke="none"/></symbol>
+    <symbol id="i-shuffle" viewBox="0 0 24 24"><path d="M3 6h3.2c4.6 0 5.6 12 10.6 12H21M17 14l4 4-4 4M3 18h3.2c1.8 0 3-1.8 4-4M14 7c1-.7 1.8-1 2.8-1H21M17 2l4 4-4 4"/></symbol>
+    <symbol id="i-repeat" viewBox="0 0 24 24"><path d="M17 2.5 21 6l-4 3.5M3 11.5V10a4 4 0 0 1 4-4h14M7 21.5 3 18l4-3.5M21 12.5V14a4 4 0 0 1-4 4H3"/></symbol>
+    <symbol id="i-queue" viewBox="0 0 24 24"><path d="M4 5h11M4 10h11M4 15h7M4 20h7"/><path d="m15 14 5 3-5 3Z" fill="currentColor" stroke="none"/></symbol>
+    <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20.6 14.2A8.8 8.8 0 0 1 9.8 3.4 8.9 8.9 0 1 0 20.6 14.2Z"/></symbol>
+    <symbol id="i-x" viewBox="0 0 24 24"><path d="m5 5 14 14M19 5 5 19"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 4v16M4 12h16"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="m4 12.5 5 5L20 6.5"/></symbol>
+    <symbol id="i-chevron-left" viewBox="0 0 24 24"><path d="M15 4 7 12l8 8"/></symbol>
+    <symbol id="i-share" viewBox="0 0 24 24"><circle cx="6" cy="12" r="2.6"/><circle cx="18" cy="6" r="2.6"/><circle cx="18" cy="18" r="2.6"/><path d="m8.4 10.8 7.2-3.6M8.4 13.2l7.2 3.6"/></symbol>
+    <symbol id="i-pencil" viewBox="0 0 24 24"><path d="m4 20 4.5-1 10.9-10.9-3.5-3.5L5 15.5ZM14.8 5.7l3.5 3.5"/></symbol>
+    <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 14h10l1-14M10 11v6M14 11v6"/></symbol>
+    <symbol id="i-folder-plus" viewBox="0 0 24 24"><path d="M3 6h7l2 2h9v12H3ZM14 11v6M11 14h6"/></symbol>
+    <symbol id="i-music" viewBox="0 0 24 24"><path d="M9 18V6l11-2v12"/><circle cx="6.5" cy="18.5" r="2.5"/><circle cx="17.5" cy="16.5" r="2.5"/></symbol>
+    <symbol id="i-wifi-off" viewBox="0 0 24 24"><path d="m3 3 18 18M9.5 16.8a4 4 0 0 1 5 0M6 13.2a9.5 9.5 0 0 1 4-2.1M18 13.2a9.7 9.7 0 0 0-2.2-1.4M2.8 9.3a14.2 14.2 0 0 1 3.3-2M17.9 7.3a14.2 14.2 0 0 1 3.3 2"/><circle cx="12" cy="20" r="1" fill="currentColor" stroke="none"/></symbol>
+    <symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 3 22 21H2ZM12 9v5M12 17.5v.5"/></symbol>
+    <symbol id="i-up" viewBox="0 0 24 24"><path d="M12 20V4M5 11l7-7 7 7"/></symbol>
+    <symbol id="i-down" viewBox="0 0 24 24"><path d="M12 4v16M5 13l7 7 7-7"/></symbol>
+    <symbol id="i-external" viewBox="0 0 24 24"><path d="M14 4h6v6M20 4 10 14M18 14v6H4V6h6"/></symbol>
+    <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7v5.5l3.5 2"/></symbol>
+    <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 7v5h-5M4 17v-5h5M19.4 12a7.7 7.7 0 0 0-13-4.2L4 10M4.6 12a7.7 7.7 0 0 0 13 4.2L20 14"/></symbol>
+    <symbol id="i-expand" viewBox="0 0 24 24"><path d="M9 4H4v5M15 4h5v5M9 20H4v-5M15 20h5v-5"/></symbol>
+    <symbol id="i-pixel-star" viewBox="0 0 7 7"><path d="M3 0h1v2h2v1h1v1H5v1H4v2H3V6H2V5H0V4h1V3h2Z" fill="currentColor" stroke="none"/></symbol>
+  </svg>
+
+  <div class="app" id="app">
+    <aside class="sidebar" aria-label="Orbit sidebar">
+      <ui-button><button class="brand" type="button" data-action="nav" data-view="home" aria-label="ORBIT home">
+        <span class="brand-mark"><img src="assets/orbit.svg" alt="" width="40" height="40" /></span>
+        <span class="brand-word">ORBIT<span class="brand-dot">.</span></span>
+      </button></ui-button>
+      <p class="sidebar-kicker">music for your own gravity</p>
+
+      <nav class="nav-list" aria-label="Main">
+        <ui-button><button class="nav-item is-active" type="button" data-action="nav" data-view="home" aria-current="page"><svg class="icon"><use href="#i-home"/></svg><span>Home</span></button></ui-button>
+        <ui-button><button class="nav-item" type="button" data-action="nav" data-view="search"><svg class="icon"><use href="#i-search"/></svg><span>Search</span></button></ui-button>
+        <ui-button><button class="nav-item" type="button" data-action="nav" data-view="library"><svg class="icon"><use href="#i-library"/></svg><span>Library</span></button></ui-button>
+        <ui-button><button class="nav-item" type="button" data-action="nav" data-view="downloads"><svg class="icon"><use href="#i-download"/></svg><span>Downloads</span></button></ui-button>
+      </nav>
+
+      <div class="sidebar-section">
+        <div class="sidebar-heading">
+          <span>Your playlists</span>
+          <ui-button><button class="mini-icon-btn" type="button" data-action="new-playlist" aria-label="Create playlist"><svg class="icon"><use href="#i-plus"/></svg></button></ui-button>
+        </div>
+        <div class="sidebar-playlists" id="sidebarPlaylists"></div>
+      </div>
+
+      <div class="sidebar-footer">
+        <ui-button><button class="source-card" type="button" data-action="open-settings" aria-labelledby="sourceLabel sourceDetail" title="Open audio source settings">
+          <span class="source-dot" id="sourceDot"></span>
+          <span class="source-copy"><strong id="sourceLabel">Browser mode</strong><small id="sourceDetail">Demo loops ready</small></span>
+          <svg class="icon"><use href="#i-settings"/></svg>
+        </button></ui-button>
+        <p class="sidebar-note">Four original loops. No account, no algorithm.</p>
+      </div>
+    </aside>
+
+    <header class="mobile-topbar">
+      <ui-button><button class="brand brand-compact" type="button" data-action="nav" data-view="home" aria-label="ORBIT home">
+        <span class="brand-mark"><img src="assets/orbit.svg" alt="" width="34" height="34" /></span>
+        <span class="brand-word">ORBIT<span class="brand-dot">.</span></span>
+      </button></ui-button>
+      <div class="mobile-top-actions">
+        <ui-button><button class="icon-btn" type="button" data-action="nav" data-view="search" aria-label="Search"><svg class="icon"><use href="#i-search"/></svg></button></ui-button>
+        <ui-button><button class="icon-btn" type="button" data-action="open-settings" aria-label="Settings"><svg class="icon"><use href="#i-settings"/></svg></button></ui-button>
+      </div>
+    </header>
+
+    <main class="main" id="mainContent">
+      <div class="offline-banner" id="offlineBanner" role="status" hidden>
+        <svg class="icon"><use href="#i-wifi-off"/></svg>
+        <span>You're offline. Original loops still play. Search needs a connection.</span>
+      </div>
+
+      <header class="topbar">
+        <div class="topbar-copy">
+          <span class="eyebrow" id="topEyebrow">Listening room</span>
+          <strong id="topTitle">Home</strong>
+        </div>
+        <form class="top-search" id="topSearchForm" role="search">
+          <ui-field>
+            <ui-field-label class="sr-only">Search YouTube or paste a link</ui-field-label>
+            <ui-input><input id="topSearchInput" type="search" placeholder="Search a song or paste a YouTube link" autocomplete="off" spellcheck="false" /></ui-input>
+          </ui-field>
+          <ui-button><button class="icon-btn top-search-btn" type="button" data-action="submit-search" data-form="topSearchForm" aria-label="Run YouTube search"><svg class="icon"><use href="#i-search"/></svg></button></ui-button>
+        </form>
+        <ui-button><button class="icon-btn top-settings" type="button" data-action="open-settings" aria-label="Settings"><svg class="icon"><use href="#i-settings"/></svg></button></ui-button>
+      </header>
+
+      <section class="view is-active" id="view-home" aria-labelledby="heroTitle">
+        <section class="hero" aria-labelledby="heroTitle">
+          <div class="hero-copy">
+            <div class="eyebrow-row">
+              <span class="pixel-badge"><svg class="pixel-star-icon"><use href="#i-pixel-star"/></svg> Original demo loops</span>
+              <span class="tiny-note">made in orbit</span>
+            </div>
+            <h1 id="heroTitle">Find your<br /><span class="hero-accent">own orbit.</span></h1>
+            <p class="hero-text">A small pixel world of warm, unhurried loops. Press play, stay a while, and let the night move at your speed.</p>
+            <div class="hero-actions">
+              <ui-button><button class="btn btn-primary" type="button" data-action="play-demo"><svg class="icon"><use href="#i-play"/></svg> Play demo mix</button></ui-button>
+              <ui-button><button class="btn btn-ghost" type="button" data-action="scroll-loops">Explore loops</button></ui-button>
+            </div>
+            <dl class="hero-facts">
+              <div><dt>4</dt><dd>original loops</dd></div>
+              <div><dt>24s</dt><dd>each</dd></div>
+              <div><dt>∞</dt><dd>replays</dd></div>
+            </dl>
+          </div>
+          <div class="hero-art">
+            <div class="hero-frame">
+              <img src="assets/world.png" alt="Pixel-art night landscape with a moon, stars, and a small listening tower" width="128" height="96" />
+              <span class="px-star star-a" aria-hidden="true"><svg><use href="#i-pixel-star"/></svg></span>
+              <span class="px-star star-b" aria-hidden="true"><svg><use href="#i-pixel-star"/></svg></span>
+              <span class="px-star star-c" aria-hidden="true"><svg><use href="#i-pixel-star"/></svg></span>
+              <div class="hero-eq equalizer" data-eq aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
+              <span class="hero-sticker">24 sec loops</span>
+            </div>
+            <div class="hero-float">
+              <div class="hero-float-art" id="heroFloatArt"></div>
+              <div class="hero-float-copy">
+                <span class="eyebrow">Start here</span>
+                <strong>Moonlit arcade</strong>
+                <small>Orbit originals · Chill</small>
+              </div>
+              <ui-button><button class="round-play" type="button" data-action="play-track" data-id="demo:moon" data-context="home" aria-label="Play Moonlit arcade"><svg class="icon"><use href="#i-play"/></svg></button></ui-button>
+            </div>
+          </div>
+        </section>
+
+        <section class="section mood-section" aria-labelledby="moodHeading">
+          <div class="section-head">
+            <div><span class="eyebrow">Pick a frequency</span><h2 id="moodHeading">Mood</h2></div>
+            <p class="section-aside">Filters the demo loops.</p>
+          </div>
+          <ui-toggle-group class="mood-rail" id="moodRail" aria-label="Filter by mood" default-value="All" deselectable="false">
+            <ui-toggle value="All"><button class="mood-chip is-active" type="button" data-action="mood" data-mood="All">All <span class="mood-count">4</span></button></ui-toggle>
+            <ui-toggle value="Chill"><button class="mood-chip" type="button" data-action="mood" data-mood="Chill">Chill <span class="mood-count">2</span></button></ui-toggle>
+            <ui-toggle value="Focus"><button class="mood-chip" type="button" data-action="mood" data-mood="Focus">Focus <span class="mood-count">1</span></button></ui-toggle>
+            <ui-toggle value="Energy"><button class="mood-chip" type="button" data-action="mood" data-mood="Energy">Energy <span class="mood-count">0</span></button></ui-toggle>
+            <ui-toggle value="Dream"><button class="mood-chip" type="button" data-action="mood" data-mood="Dream">Dream <span class="mood-count">1</span></button></ui-toggle>
+          </ui-toggle-group>
+        </section>
+
+        <section class="section" id="loopsSection" aria-labelledby="loopsHeading">
+          <div class="section-head">
+            <div><span class="eyebrow">Small worlds</span><h2 id="loopsHeading">Orbit originals</h2></div>
+            <ui-button><button class="text-link" type="button" data-action="nav" data-view="library">Open library <svg class="icon"><use href="#i-chevron-left"/></svg></button></ui-button>
+          </div>
+          <div class="cover-rail" id="coverRail"></div>
+        </section>
+
+        <section class="section" aria-labelledby="freshHeading">
+          <div class="section-head">
+            <div><span class="eyebrow">No algorithm</span><h2 id="freshHeading">Fresh in your orbit</h2></div>
+            <p class="section-aside">Original demos only.</p>
+          </div>
+          <div class="song-list" id="homeRows"></div>
+        </section>
+
+        <aside class="info-strip">
+          <span class="info-strip-icon"><svg class="icon"><use href="#i-pixel-star"/></svg></span>
+          <div><strong>Honest by design.</strong><p>These are original 24-second demo loops, not famous tracks. YouTube search is real, and nothing here pretends to be a catalog you don't have.</p></div>
+        </aside>
+      </section>
+
+      <section class="view" id="view-search" aria-labelledby="searchHeading" hidden>
+        <div class="view-head">
+          <span class="eyebrow">Search the night sky</span>
+          <h1 id="searchHeading">Anything in orbit?</h1>
+          <p>Search a song, an artist, or paste a YouTube link. Results are real, never invented.</p>
+        </div>
+
+        <div class="source-banner" id="searchSourceBanner"></div>
+
+        <form class="search-form" id="searchForm" role="search">
+          <ui-field>
+            <ui-field-label class="sr-only">Search YouTube or paste a link</ui-field-label>
+            <ui-input><input id="searchInput" type="search" placeholder="Try “ambient”, or paste a YouTube URL" autocomplete="off" spellcheck="false" /></ui-input>
+          </ui-field>
+          <ui-button><button class="btn btn-primary" type="button" data-action="submit-search" data-form="searchForm"><svg class="icon"><use href="#i-search"/></svg> Search</button></ui-button>
+        </form>
+
+        <div class="search-status" id="searchStatus" aria-live="polite"></div>
+        <div class="song-list search-results" id="searchResults"></div>
+
+        <aside class="search-help">
+          <span class="pixel-badge">How search works</span>
+          <p id="searchHelpText">In the Android app, YouTube search and playback run through the native extractor. In a browser, connect your own Piped API endpoint in Settings. No public server is baked in.</p>
+          <div class="inline-actions">
+            <ui-button><button class="text-link" type="button" data-action="open-settings">Source settings <svg class="icon"><use href="#i-settings"/></svg></button></ui-button>
+            <ui-button><button class="text-link" type="button" data-action="open-youtube">Open YouTube <svg class="icon"><use href="#i-external"/></svg></button></ui-button>
+          </div>
+        </aside>
+      </section>
+
+      <section class="view" id="view-library" aria-labelledby="libraryHeading" hidden>
+        <div class="view-head view-head-row">
+          <div>
+            <span class="eyebrow">Your collection</span>
+            <h1 id="libraryHeading">Library</h1>
+            <p>Liked songs, playlists, imports, and the names you give them.</p>
+          </div>
+          <div class="view-actions">
+            <ui-button><button class="btn btn-ghost" type="button" data-action="import"><svg class="icon"><use href="#i-folder-plus"/></svg> Import audio</button></ui-button>
+            <ui-button><button class="btn btn-primary" type="button" data-action="new-playlist"><svg class="icon"><use href="#i-plus"/></svg> New playlist</button></ui-button>
+          </div>
+        </div>
+
+        <div class="library-toolbar">
+          <ui-field>
+            <ui-field-label class="sr-only">Filter your library</ui-field-label>
+            <ui-input><input id="libraryFilter" type="search" placeholder="Filter by track or artist" autocomplete="off" spellcheck="false" /></ui-input>
+          </ui-field>
+          <span class="library-count" id="libraryCount"></span>
+        </div>
+
+        <div id="playlistDetail"></div>
+
+        <section class="section library-section" aria-labelledby="playlistsHeading">
+          <div class="section-head">
+            <div><span class="eyebrow">Made by you</span><h2 id="playlistsHeading">Playlists</h2></div>
+            <span class="section-aside" id="playlistCountLabel"></span>
+          </div>
+          <div class="playlist-grid" id="playlistGrid"></div>
+        </section>
+
+        <section class="section library-section" aria-labelledby="likedHeading">
+          <div class="section-head">
+            <div><span class="eyebrow">Keep close</span><h2 id="likedHeading">Liked songs</h2></div>
+            <span class="section-aside" id="likedCountLabel"></span>
+          </div>
+          <div class="song-list" id="likedRows"></div>
+        </section>
+
+        <section class="section library-section" aria-labelledby="allTracksHeading">
+          <div class="section-head">
+            <div><span class="eyebrow">Everything saved</span><h2 id="allTracksHeading">All tracks</h2></div>
+            <span class="section-aside">Includes session-only imports.</span>
+          </div>
+          <div class="song-list" id="libraryRows"></div>
+        </section>
+      </section>
+
+      <section class="view" id="view-downloads" aria-labelledby="downloadsHeading" hidden>
+        <div class="view-head view-head-row">
+          <div>
+            <span class="eyebrow">Take it with you</span>
+            <h1 id="downloadsHeading">Downloads</h1>
+            <p>Offline copies are managed by the Android app. A browser download is just a file, not an offline library.</p>
+          </div>
+          <div class="view-actions">
+            <ui-button><button class="btn btn-ghost" type="button" data-action="refresh-downloads"><svg class="icon"><use href="#i-refresh"/></svg> Refresh</button></ui-button>
+          </div>
+        </div>
+
+        <div class="download-state" id="downloadState"></div>
+        <div class="download-list" id="downloadsList"></div>
+
+        <section class="section" id="browserDownloadsSection" aria-labelledby="demoDownloadsHeading">
+          <div class="section-head">
+            <div><span class="eyebrow">Included with Orbit</span><h2 id="demoDownloadsHeading">Demo loop files</h2></div>
+            <p class="section-aside">Saved by your browser. Not offline tracks.</p>
+          </div>
+          <div class="demo-download-grid" id="demoDownloadGrid"></div>
+        </section>
+
+        <aside class="info-strip">
+          <span class="info-strip-icon"><svg class="icon"><use href="#i-download"/></svg></span>
+          <div><strong>Queued is not complete.</strong><p>On Android, a download shows queued until the native download service reports it complete. Failed downloads keep their error state so you can retry.</p></div>
+        </aside>
+      </section>
+    </main>
+
+    <aside class="now-room" aria-label="Now playing">
+      <div class="room-head">
+        <span class="eyebrow">Now playing</span>
+        <div class="room-head-actions">
+          <ui-button><button class="icon-btn" type="button" data-action="open-queue" aria-label="Open queue"><svg class="icon"><use href="#i-queue"/></svg></button></ui-button>
+          <ui-button><button class="icon-btn" type="button" data-action="open-expanded" aria-label="Expand player"><svg class="icon"><use href="#i-expand"/></svg></button></ui-button>
+        </div>
+      </div>
+
+      <div class="player-art-wrap">
+        <div class="cover cover-xl" id="playerCover"></div>
+        <div class="player-eq equalizer" data-eq aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+        <span class="art-badge" id="playerSourceBadge">Demo</span>
+      </div>
+
+      <div class="player-meta">
+        <h2 class="player-title js-title" id="playerTitle">Moonlit arcade</h2>
+        <p class="player-artist js-artist" id="playerArtist">Orbit originals</p>
+        <div class="badge-row" id="playerBadges"></div>
+      </div>
+
+      <div class="progress-block">
+        <ui-slider class="sdk-seek seek-slider" id="playerSeek" min="0" max="24" step="0.1" default-value="0" aria-label="Seek in player">
+          <ui-slider-control>
+            <ui-slider-track>
+              <ui-slider-indicator></ui-slider-indicator>
+              <ui-slider-thumb aria-label="Seek in player"></ui-slider-thumb>
+            </ui-slider-track>
+          </ui-slider-control>
+        </ui-slider>
+        <input class="native-seek seek-input" id="playerSeekFallback" type="range" min="0" max="24" step="0.1" value="0" aria-label="Seek in player" data-seek="player" />
+        <div class="time-row"><span id="playerCurrent">0:00</span><span id="playerDuration">0:24</span></div>
+      </div>
+
+      <div class="player-controls">
+        <ui-button><button class="control-btn" type="button" data-action="shuffle" id="playerShuffle" aria-label="Shuffle"><svg class="icon"><use href="#i-shuffle"/></svg></button></ui-button>
+        <ui-button><button class="control-btn" type="button" data-action="previous" aria-label="Previous track"><svg class="icon"><use href="#i-prev"/></svg></button></ui-button>
+        <ui-button><button class="play-btn js-play-toggle" type="button" data-action="toggle-play" aria-label="Play"><svg class="icon js-play-icon"><use href="#i-play"/></svg></button></ui-button>
+        <ui-button><button class="control-btn" type="button" data-action="next" aria-label="Next track"><svg class="icon"><use href="#i-next"/></svg></button></ui-button>
+        <ui-button><button class="control-btn" type="button" data-action="repeat" id="playerRepeat" aria-label="Repeat off"><svg class="icon"><use href="#i-repeat"/></svg><span class="repeat-one" aria-hidden="true">1</span></button></ui-button>
+      </div>
+
+      <div class="player-actions">
+        <ui-toggle id="playerLike"><button class="icon-btn like-btn" type="button" data-action="toggle-like" aria-label="Like current track"><svg class="icon"><use href="#i-heart"/></svg></button></ui-toggle>
+        <ui-button><button class="icon-btn" type="button" data-action="focus-sleep" aria-label="Sleep timer"><svg class="icon"><use href="#i-moon"/></svg></button></ui-button>
+        <span class="sleep-chip" id="sleepStatus" hidden></span>
+        <ui-button><button class="text-link queue-link" type="button" data-action="open-queue">Queue <svg class="icon"><use href="#i-queue"/></svg></button></ui-button>
+      </div>
+
+      <section class="up-next" aria-labelledby="upNextHeading">
+        <div class="up-next-head"><h3 id="upNextHeading">Up next</h3><ui-button><button class="text-link" type="button" data-action="open-queue">View all</button></ui-button></div>
+        <div id="upNextList"></div>
+      </section>
+
+      <p class="room-note">Demo loops are original Orbit recordings.</p>
+    </aside>
+
+    <nav class="mobile-nav" aria-label="Mobile main">
+      <ui-button><button class="mobile-nav-item is-active" type="button" data-action="nav" data-view="home" aria-current="page"><svg class="icon"><use href="#i-home"/></svg><span>Home</span></button></ui-button>
+      <ui-button><button class="mobile-nav-item" type="button" data-action="nav" data-view="search"><svg class="icon"><use href="#i-search"/></svg><span>Search</span></button></ui-button>
+      <ui-button><button class="mobile-nav-item" type="button" data-action="nav" data-view="library"><svg class="icon"><use href="#i-library"/></svg><span>Library</span></button></ui-button>
+      <ui-button><button class="mobile-nav-item" type="button" data-action="nav" data-view="downloads"><svg class="icon"><use href="#i-download"/></svg><span>Downloads</span></button></ui-button>
+    </nav>
+
+    <div class="mini-player" id="miniPlayer">
+      <ui-button><button class="mini-open" type="button" data-action="open-expanded" aria-label="Open player">
+        <span class="cover cover-mini" id="miniCover"></span>
+        <span class="mini-copy"><strong class="js-title" id="miniTitle">Moonlit arcade</strong><small class="js-artist" id="miniArtist">Orbit originals</small></span>
+      </button></ui-button>
+      <div class="mini-controls">
+        <ui-button><button class="icon-btn mini-play js-play-toggle" type="button" data-action="toggle-play" aria-label="Play"><svg class="icon js-play-icon"><use href="#i-play"/></svg></button></ui-button>
+        <ui-button><button class="icon-btn" type="button" data-action="next" aria-label="Next track"><svg class="icon"><use href="#i-next"/></svg></button></ui-button>
+      </div>
+      <span class="mini-progress" aria-hidden="true"><span id="miniProgressBar"></span></span>
     </div>
-  </header>
 
-  <main>
-    <!-- 1. CAMERA -->
-    <section class="card">
-      <h2><span class="num">01</span> Camera</h2>
-      <p class="note">getUserMedia → WebChromeClient.onPermissionRequest + runtime CAMERA permission.</p>
-      <video id="cam" autoplay playsinline muted></video>
-      <div class="row">
-        <button id="cam-start">Start</button>
-        <button id="cam-swap" class="ghost">Flip</button>
-        <button id="cam-stop" class="ghost" disabled>Stop</button>
+    <audio id="audio" preload="metadata"></audio>
+  </div>
+
+  <ui-dialog id="settingsDialog" aria-label="Settings">
+    <ui-dialog-backdrop hidden></ui-dialog-backdrop>
+    <ui-dialog-content class="dialog-card settings-card" initial-focus="content" hidden>
+      <div class="dialog-head">
+        <div><ui-dialog-title>Settings</ui-dialog-title><ui-dialog-description>Sources, appearance, and your saved data.</ui-dialog-description></div>
+        <ui-dialog-close><button class="icon-btn" type="button" aria-label="Close settings" data-fallback-close><svg class="icon"><use href="#i-x"/></svg></button></ui-dialog-close>
       </div>
-      <div class="row">
-        <button id="cam-shot" class="gold" disabled>Capture frame</button>
+      <div class="settings-scroll">
+        <section class="settings-section" aria-labelledby="sourceSettingsHeading">
+          <div class="settings-section-head"><span class="eyebrow">01 / Source</span><h3 id="sourceSettingsHeading">Where audio comes from</h3></div>
+          <div class="source-explain" id="settingsSourceState"></div>
+          <p class="settings-copy" id="settingsSourceCopy"></p>
+          <div id="pipedSettings">
+            <form class="settings-form" id="pipedForm">
+              <ui-field>
+                <ui-field-label>Piped API endpoint</ui-field-label>
+                <ui-input><input id="pipedUrlInput" type="url" inputmode="url" placeholder="https://piped.example/api" autocomplete="off" spellcheck="false" /></ui-input>
+                <ui-field-description>HTTPS only. The endpoint must expose Piped API v1 and allow browser CORS requests.</ui-field-description>
+              </ui-field>
+              <div class="inline-actions">
+                <ui-button><button class="btn btn-primary" type="button" data-action="save-piped">Save endpoint</button></ui-button>
+                <ui-button><button class="btn btn-ghost" type="button" data-action="test-piped">Test connection</button></ui-button>
+              </div>
+              <p class="form-status" id="pipedStatus" aria-live="polite"></p>
+            </form>
+            <p class="settings-hint">Browser playback also depends on the endpoint's stream URLs and CORS. If a stream fails, try another result or endpoint. Demo loops never need it.</p>
+          </div>
+        </section>
+
+        <section class="settings-section" aria-labelledby="appearanceSettingsHeading">
+          <div class="settings-section-head"><span class="eyebrow">02 / Look</span><h3 id="appearanceSettingsHeading">Appearance</h3></div>
+          <div class="setting-row">
+            <div><strong>Theme</strong><small>Midnight plum, or a soft daylight room.</small></div>
+            <ui-toggle-group id="themeGroup" aria-label="Theme" default-value="midnight" deselectable="false">
+              <ui-toggle value="midnight"><button class="seg-chip" type="button" data-action="theme" data-theme-choice="midnight">Midnight</button></ui-toggle>
+              <ui-toggle value="daylight"><button class="seg-chip" type="button" data-action="theme" data-theme-choice="daylight">Daylight</button></ui-toggle>
+            </ui-toggle-group>
+          </div>
+          <div class="setting-row">
+            <div><strong>Motion</strong><small>Pixel equalizers, stars, and small transitions.</small></div>
+            <ui-switch class="switch-btn" id="motionToggle" default-checked aria-label="Motion" data-action="motion"><ui-switch-thumb class="switch-thumb"></ui-switch-thumb></ui-switch>
+          </div>
+        </section>
+
+        <section class="settings-section" aria-labelledby="dataSettingsHeading">
+          <div class="settings-section-head"><span class="eyebrow">03 / Data</span><h3 id="dataSettingsHeading">Your data</h3></div>
+          <p class="settings-copy">Playlists, likes, track names, and settings stay on this device. Export a readable JSON copy any time. Session-only browser imports are left out.</p>
+          <ui-button><button class="btn btn-ghost" type="button" data-action="export-library"><svg class="icon"><use href="#i-download"/></svg> Export library JSON</button></ui-button>
+        </section>
+
+        <section class="settings-section about-section" aria-labelledby="aboutHeading">
+          <div class="settings-section-head"><span class="eyebrow">04 / About</span><h3 id="aboutHeading">ORBIT</h3></div>
+          <p class="settings-copy">A pixel listening room with four original demo loops. Built for headphones, late hours, and small adventures.</p>
+          <p class="settings-hint">Demo loops: Moonlit arcade, Peach skies, Cloud save, After hours. Each 24 seconds. Not commercial tracks.</p>
+        </section>
       </div>
-      <img id="cam-shot-img" class="preview" alt="" hidden />
-      <pre id="cam-out" class="out"></pre>
-    </section>
+    </ui-dialog-content>
+  </ui-dialog>
 
-    <!-- 2. GEO -->
-    <section class="card">
-      <h2><span class="num">02</span> Geolocation</h2>
-      <p class="note">onGeolocationPermissionsShowPrompt + location runtime permission.</p>
-      <div class="row">
-        <button id="geo-get">Locate me</button>
-        <button id="geo-watch" class="ghost">Watch 3 fixes</button>
+  <ui-drawer id="queueDrawer" side="right" aria-label="Queue">
+    <ui-drawer-backdrop hidden></ui-drawer-backdrop>
+    <ui-drawer-content class="queue-drawer" hidden>
+      <div class="dialog-head">
+        <div><ui-drawer-title>Queue</ui-drawer-title><ui-drawer-description>Your orbit, in order.</ui-drawer-description></div>
+        <ui-drawer-close><button class="icon-btn" type="button" aria-label="Close queue" data-fallback-close><svg class="icon"><use href="#i-x"/></svg></button></ui-drawer-close>
       </div>
-      <pre id="geo-out" class="out"></pre>
-    </section>
-
-    <!-- 3. MIC -->
-    <section class="card">
-      <h2><span class="num">03</span> Microphone</h2>
-      <p class="note">Same permission bridge, audio resource. Live input level via Web Audio.</p>
-      <div class="meter"><i id="mic-bar"></i></div>
-      <div class="row">
-        <button id="mic-start">Start</button>
-        <button id="mic-stop" class="ghost" disabled>Stop</button>
+      <div class="queue-toolbar">
+        <ui-button><button class="tool-btn" type="button" data-action="shuffle" id="queueShuffle"><svg class="icon"><use href="#i-shuffle"/></svg> Shuffle</button></ui-button>
+        <ui-button><button class="tool-btn" type="button" data-action="repeat" id="queueRepeat"><svg class="icon"><use href="#i-repeat"/></svg> Repeat</button></ui-button>
       </div>
-      <pre id="mic-out" class="out"></pre>
-    </section>
+      <div class="queue-list" id="queueList"></div>
+      <section class="sleep-section" id="sleepSection" aria-labelledby="sleepHeading">
+        <div class="sleep-head"><svg class="icon"><use href="#i-moon"/></svg><div><h3 id="sleepHeading">Sleep timer</h3><p>Stop playback after a while.</p></div></div>
+        <div class="sleep-options">
+          <ui-button><button class="seg-chip" type="button" data-action="sleep" data-minutes="0">Off</button></ui-button>
+          <ui-button><button class="seg-chip" type="button" data-action="sleep" data-minutes="15">15 min</button></ui-button>
+          <ui-button><button class="seg-chip" type="button" data-action="sleep" data-minutes="30">30 min</button></ui-button>
+          <ui-button><button class="seg-chip" type="button" data-action="sleep" data-minutes="60">60 min</button></ui-button>
+        </div>
+        <p class="form-status" id="sleepStatusText" aria-live="polite"></p>
+      </section>
+    </ui-drawer-content>
+  </ui-drawer>
 
-    <!-- 4. FILE -->
-    <section class="card">
-      <h2><span class="num">04</span> File picker</h2>
-      <p class="note">WebChromeClient.onShowFileChooser → ACTION_GET_CONTENT intent.</p>
-      <input id="file" type="file" accept="image/*" />
-      <img id="file-img" class="preview" alt="" hidden />
-      <pre id="file-out" class="out"></pre>
-    </section>
-
-    <!-- 5. SHARE / INTENT -->
-    <section class="card">
-      <h2><span class="num">05</span> Share sheet</h2>
-      <p class="note">Intent.ACTION_SEND through a @JavascriptInterface method. "Open in app" prefers a real app handler over a browser.</p>
-      <input id="share-text" type="text" value="Sent from Silicon 🧪" />
-      <div class="row">
-        <button id="share-go">Share</button>
-        <button id="intent-typed" class="ghost">Open in app</button>
-        <button id="intent-open" class="ghost">Open demo URL</button>
+  <ui-dialog id="expandedDialog" presentation="auto" aria-label="Now playing">
+    <ui-dialog-backdrop hidden></ui-dialog-backdrop>
+    <ui-dialog-content class="expanded-content" initial-focus="content" hidden>
+      <div class="dialog-head expanded-head">
+        <span class="eyebrow">Now orbiting</span>
+        <ui-dialog-close><button class="icon-btn" type="button" aria-label="Close player" data-fallback-close><svg class="icon"><use href="#i-x"/></svg></button></ui-dialog-close>
       </div>
-      <pre id="share-out" class="out"></pre>
-    </section>
-
-    <!-- 6. CLIPBOARD -->
-    <section class="card">
-      <h2><span class="num">06</span> Clipboard</h2>
-      <p class="note">ClipboardManager, works even where navigator.clipboard is blocked on file://.</p>
-      <input id="clip-text" type="text" value="hello from the native side" />
-      <div class="row">
-        <button id="clip-copy">Copy</button>
-        <button id="clip-read" class="ghost">Read</button>
+      <div class="expanded-grid">
+        <div class="expanded-art">
+          <div class="cover cover-expanded" id="expandedCover"></div>
+          <div class="particles" id="particles" aria-hidden="true"></div>
+          <div class="expanded-eq equalizer" data-eq aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
+        </div>
+        <div class="expanded-info">
+          <ui-dialog-title class="expanded-title js-title" id="expandedTitle">Moonlit arcade</ui-dialog-title>
+          <p class="expanded-artist js-artist" id="expandedArtist">Orbit originals</p>
+          <div class="badge-row" id="expandedBadges"></div>
+          <div class="progress-block expanded-progress">
+            <ui-slider class="sdk-seek seek-slider" id="expandedSeek" min="0" max="24" step="0.1" default-value="0" aria-label="Seek in expanded player">
+              <ui-slider-control>
+                <ui-slider-track>
+                  <ui-slider-indicator></ui-slider-indicator>
+                  <ui-slider-thumb aria-label="Seek in expanded player"></ui-slider-thumb>
+                </ui-slider-track>
+              </ui-slider-control>
+            </ui-slider>
+            <input class="native-seek seek-input" id="expandedSeekFallback" type="range" min="0" max="24" step="0.1" value="0" aria-label="Seek in expanded player" data-seek="expanded" />
+            <div class="time-row"><span id="expandedCurrent">0:00</span><span id="expandedDuration">0:24</span></div>
+          </div>
+          <div class="player-controls expanded-controls">
+            <ui-button><button class="control-btn" type="button" data-action="shuffle" aria-label="Shuffle"><svg class="icon"><use href="#i-shuffle"/></svg></button></ui-button>
+            <ui-button><button class="control-btn" type="button" data-action="previous" aria-label="Previous track"><svg class="icon"><use href="#i-prev"/></svg></button></ui-button>
+            <ui-button><button class="play-btn js-play-toggle" type="button" data-action="toggle-play" aria-label="Play"><svg class="icon js-play-icon"><use href="#i-play"/></svg></button></ui-button>
+            <ui-button><button class="control-btn" type="button" data-action="next" aria-label="Next track"><svg class="icon"><use href="#i-next"/></svg></button></ui-button>
+            <ui-button><button class="control-btn" type="button" data-action="repeat" aria-label="Repeat off"><svg class="icon"><use href="#i-repeat"/></svg><span class="repeat-one" aria-hidden="true">1</span></button></ui-button>
+          </div>
+          <div class="expanded-actions">
+            <ui-toggle id="expandedLike"><button class="icon-btn like-btn" type="button" data-action="toggle-like" aria-label="Like current track"><svg class="icon"><use href="#i-heart"/></svg></button></ui-toggle>
+            <ui-button><button class="icon-btn" type="button" data-action="focus-sleep" aria-label="Sleep timer"><svg class="icon"><use href="#i-moon"/></svg></button></ui-button>
+            <ui-button><button class="icon-btn" type="button" data-action="open-queue" aria-label="Queue"><svg class="icon"><use href="#i-queue"/></svg></button></ui-button>
+            <span class="sleep-chip" id="expandedSleepStatus" hidden></span>
+          </div>
+          <p class="expanded-source" id="expandedSource"></p>
+        </div>
       </div>
-      <pre id="clip-out" class="out"></pre>
-    </section>
+    </ui-dialog-content>
+  </ui-dialog>
 
-    <!-- 7. TOAST + VIBRATE -->
-    <section class="card">
-      <h2><span class="num">07</span> Toast &amp; vibrate</h2>
-      <p class="note">Toast + Vibrator. Vibration API alone is unreliable in WebView.</p>
-      <div class="row">
-        <button id="toast-go">Toast</button>
-        <button id="vib-go" class="ghost">Vibrate 120ms</button>
-        <button id="vib-pattern" class="ghost">Pattern</button>
+  <ui-dialog id="promptDialog" aria-label="Edit name">
+    <ui-dialog-backdrop hidden></ui-dialog-backdrop>
+    <ui-dialog-content class="dialog-card prompt-card" hidden>
+      <div class="dialog-head">
+        <div><ui-dialog-title id="promptTitle">Name your playlist</ui-dialog-title><ui-dialog-description id="promptDescription">You can rename it later.</ui-dialog-description></div>
+        <ui-dialog-close><button class="icon-btn" type="button" aria-label="Cancel" data-fallback-close><svg class="icon"><use href="#i-x"/></svg></button></ui-dialog-close>
       </div>
-    </section>
+      <form id="promptForm" novalidate>
+        <ui-field id="promptField">
+          <ui-field-label id="promptLabel">Playlist name</ui-field-label>
+          <ui-input><input id="promptInput" type="text" maxlength="80" autocomplete="off" required /></ui-input>
+        </ui-field>
+        <div class="dialog-actions">
+          <ui-dialog-close><button class="btn btn-ghost" type="button" data-fallback-close>Cancel</button></ui-dialog-close>
+          <ui-button><button class="btn btn-primary" type="button" data-action="submit-prompt">Save</button></ui-button>
+        </div>
+      </form>
+    </ui-dialog-content>
+  </ui-dialog>
 
-    <!-- 8. DEVICE INFO -->
-    <section class="card wide">
-      <h2><span class="num">08</span> Device info</h2>
-      <p class="note">Build.* + PackageManager + DisplayMetrics returned as JSON.</p>
-      <div class="row"><button id="dev-go">Read device</button></div>
-      <table class="kv" id="dev-table"></table>
-      <pre id="dev-out" class="out"></pre>
-    </section>
-
-    <!-- 9. STORAGE -->
-    <section class="card">
-      <h2><span class="num">09</span> Native storage</h2>
-      <p class="note">SharedPreferences, survives app restarts, separate from localStorage.</p>
-      <input id="store-key" type="text" value="myKey" />
-      <input id="store-val" type="text" value="persisted natively" />
-      <div class="row">
-        <button id="store-save">Save</button>
-        <button id="store-read" class="ghost">Read</button>
-        <button id="store-dump" class="ghost">Dump all</button>
+  <ui-alert-dialog id="confirmDialog" aria-label="Confirm action">
+    <ui-alert-dialog-backdrop hidden></ui-alert-dialog-backdrop>
+    <ui-alert-dialog-content class="dialog-card confirm-card" hidden>
+      <div class="dialog-head">
+        <div><ui-alert-dialog-title id="confirmTitle">Are you sure?</ui-alert-dialog-title><ui-alert-dialog-description id="confirmDescription">This cannot be undone.</ui-alert-dialog-description></div>
       </div>
-      <pre id="store-out" class="out"></pre>
-    </section>
-
-    <!-- 10. ASYNC BRIDGE -->
-    <section class="card">
-      <h2><span class="num">10</span> Async JS ↔ native</h2>
-      <p class="note">Native thread → evaluateJavascript callback. The pattern Capacitor wraps in a promise.</p>
-      <input id="ping-text" type="text" value="silicon" />
-      <div class="row"><button id="ping-go" class="gold">Ping native</button></div>
-      <pre id="ping-out" class="out"></pre>
-    </section>
-
-    <!-- 11. NOTIFICATION -->
-    <section class="card">
-      <h2><span class="num">11</span> Notification</h2>
-      <p class="note">NotificationManager + channel, plus POST_NOTIFICATIONS on API 33+.</p>
-      <div class="row">
-        <button id="notif-go">Notify</button>
-        <button id="notif-bad" class="ghost">Badge / silent</button>
+      <div class="dialog-actions">
+        <ui-alert-dialog-close><button class="btn btn-ghost" type="button" data-fallback-close>Cancel</button></ui-alert-dialog-close>
+        <ui-alert-dialog-close value="confirm"><button class="btn btn-danger" type="button" id="confirmButton" data-fallback-action="confirm-yes">Delete</button></ui-alert-dialog-close>
       </div>
-      <pre id="notif-out" class="out"></pre>
-    </section>
+    </ui-alert-dialog-content>
+  </ui-alert-dialog>
 
-    <!-- 12. DEVICE STATE -->
-    <section class="card">
-      <h2><span class="num">12</span> Battery &amp; network</h2>
-      <p class="note">BatteryManager + ConnectivityManager.</p>
-      <table class="kv" id="state-table"></table>
-      <div class="row"><button id="state-go">Refresh</button></div>
-    </section>
-
-    <!-- 13. FILES + PRINT -->
-    <section class="card">
-      <h2><span class="num">13</span> Save file &amp; print</h2>
-      <p class="note">MediaStore (API 29+) writes to Download/, PrintManager opens the system print sheet.</p>
-      <div class="row">
-        <button id="file-save">Save .txt to Downloads</button>
-        <button id="print-go" class="ghost">Print page</button>
+  <ui-dialog id="playlistPickerDialog" aria-label="Add to playlist">
+    <ui-dialog-backdrop hidden></ui-dialog-backdrop>
+    <ui-dialog-content class="dialog-card picker-card" initial-focus="content" hidden>
+      <div class="dialog-head">
+        <div><ui-dialog-title>Add to playlist</ui-dialog-title><ui-dialog-description id="pickerDescription">Choose a playlist for this track.</ui-dialog-description></div>
+        <ui-dialog-close><button class="icon-btn" type="button" aria-label="Close playlist picker" data-fallback-close><svg class="icon"><use href="#i-x"/></svg></button></ui-dialog-close>
       </div>
-      <pre id="file-save-out" class="out"></pre>
-    </section>
-
-    <!-- 14. JS DIALOGS -->
-    <section class="card">
-      <h2><span class="num">14</span> JS dialogs</h2>
-      <p class="note">WebChromeClient.onJsAlert / onJsConfirm → real AlertDialogs.</p>
-      <div class="row">
-        <button id="dlg-alert">alert()</button>
-        <button id="dlg-confirm" class="ghost">confirm()</button>
+      <div class="picker-list" id="playlistPickerList"></div>
+      <div class="dialog-actions picker-actions">
+        <ui-button><button class="btn btn-ghost" type="button" data-action="picker-new-playlist"><svg class="icon"><use href="#i-plus"/></svg> New playlist</button></ui-button>
+        <ui-dialog-close><button class="btn btn-ghost" type="button" data-fallback-close>Done</button></ui-dialog-close>
       </div>
-      <pre id="dlg-out" class="out"></pre>
-    </section>
+    </ui-dialog-content>
+  </ui-dialog>
 
-    <!-- HONEST LIMITS -->
-    <section class="card wide">
-      <h2><span class="num">∞</span> Honest limits</h2>
-      <p class="note">What this template cannot do without extra dependencies or work.</p>
-      <ul class="limits">
-        <li><b>Background work</b> — no Service/ForegroundService wiring beyond a raw service class. Would need manifest entries + <code>startForegroundService</code> on API 26+.</li>
-        <li><b>Secure origin</b> — this demo runs on <code>file://</code>. Anything gated on a real https origin (some newer APIs, service workers, <code>navigator.clipboard</code>) needs <code>WebViewAssetLoader</code> from <code>androidx.webkit</code>, i.e. a Gradle dependency.</li>
-        <li><b>Type-safe bridge</b> — <code>addJavascriptInterface</code> is string-based and sync-only. Typed, async, promise-based bridges need <code>androidx.webkit</code> <code>WebMessageListener</code> or manual callback plumbing (see card 10).</li>
-        <li><b>Biometrics</b> — <code>BiometricPrompt</code> lives in <code>androidx.biometric</code>.</li>
-        <li><b>SQLite / Room</b> — SQLite is in the SDK, but a clean ORM is a dependency.</li>
-        <li><b>Contacts, Bluetooth LE, NFC</b> — SDK APIs exist, but each needs manifest permissions + runtime handling + multi-screen UI. Possible, tedious.</li>
-        <li><b>In-app updates, billing, ads, crash reporting</b> — all Play/Gradle dependencies. Not happening dep-free.</li>
-        <li><b>Photo capture via <code>&lt;input capture&gt;</code></b> — needs a custom <code>ACTION_IMAGE_CAPTURE</code> intent + FileProvider. This demo only wires <code>ACTION_GET_CONTENT</code>.</li>
-        <li><b>Kotlin-only libraries</b> — callable from Java, but the template stays Java-only on purpose.</li>
-        <li><b>Debugger / logcat</b> — no Android Studio here. Use <code>chrome://inspect</code> for the web layer and <code>adb logcat</code> for Java.</li>
-      </ul>
-    </section>
+  <dialog class="fallback-sheet" id="fallbackSheet" aria-label="Track actions" data-agent-hidden>
+    <div class="fallback-sheet-head"><h2>Track actions</h2><button class="icon-btn" type="button" data-action="close-fallback-sheet" aria-label="Close"><svg class="icon"><use href="#i-x"/></svg></button></div>
+    <div id="fallbackSheetActions" class="fallback-actions"></div>
+  </dialog>
 
-    <!-- LOG -->
-    <section class="card wide">
-      <h2><span class="num">LOG</span> Event log</h2>
-      <div class="row">
-        <button id="log-clear" class="ghost">Clear</button>
-        <button id="log-copy" class="ghost">Copy log</button>
-      </div>
-      <div id="log"></div>
-    </section>
-  </main>
+  <ui-toast-region id="toastRegion" data-agent-hidden>
+    <template>
+      <ui-toast>
+        <div class="toast-stack"><ui-toast-title></ui-toast-title><ui-toast-description></ui-toast-description></div>
+        <ui-toast-close><button class="toast-close" type="button" aria-label="Dismiss notification"><svg class="icon"><use href="#i-x"/></svg></button></ui-toast-close>
+      </ui-toast>
+    </template>
+  </ui-toast-region>
+  <div class="toast-fallback" id="toastFallback" role="status" aria-live="polite"></div>
 
-  <footer>Silicon · WebView shell · no dependencies</footer>
+  <input class="sr-only" id="fileInput" type="file" accept="audio/*,.mp3,.m4a,.aac,.ogg,.wav,.flac,.opus" multiple tabindex="-1" aria-hidden="true" />
 
-  <script>
-    /* ---------------------------------------------------------------- utils */
-    const $ = (id) => document.getElementById(id);
-    const N = window.Native || null; // addJavascriptInterface object
-    const logEl = $('log');
-
-    function log(level, ...parts) {
-      const line = document.createElement('div');
-      const t = new Date().toLocaleTimeString([], { hour12: false });
-      line.innerHTML = `<span class="t">${t}</span> <span class="${level}">${level.toUpperCase()}</span> ` +
-        escapeHtml(parts.map(p => typeof p === 'string' ? p : JSON.stringify(p)).join(' '));
-      logEl.appendChild(line);
-      logEl.scrollTop = logEl.scrollHeight;
-      while (logEl.childElementCount > 200) logEl.removeChild(logEl.firstChild);
-    }
-
-    function escapeHtml(s) {
-      return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-    }
-
-    function show(id, value) {
-      const el = $(id);
-      el.textContent = typeof value === 'string' ? value : JSON.stringify(value, null, 2);
-    }
-
-    function needBridge(id) {
-      if (N) return true;
-      if (id && $(id)) show(id, 'No native bridge (open this page inside the APK).');
-      log('w', 'bridge missing');
-      return false;
-    }
-
-    function errText(e) {
-      return (e && (e.name ? e.name + ': ' : '') + (e.message || e)) || String(e);
-    }
-
-    /* ---------------------------------------------------------- status chips */
-    $('st-secure').textContent = String(window.isSecureContext);
-    $('st-origin').textContent = location.origin;
-    $('st-dpr').textContent = window.devicePixelRatio;
-    const bridgeChip = $('st-bridge');
-    bridgeChip.textContent = N ? 'connected' : 'missing';
-    bridgeChip.parentElement.className = 'chip ' + (N ? 'ok' : 'bad');
-
-    log('i', 'Silicon ready', { secure: window.isSecureContext, origin: location.origin, bridge: !!N });
-    if (N) {
-      try { log('s', 'device', JSON.parse(N.deviceInfo())); } catch (e) { log('e', 'deviceInfo failed', errText(e)); }
-    } else {
-      log('w', 'window.Native not found — running in a browser, native cards will fail');
-    }
-
-    /* ------------------------------------------------------------ 1. camera */
-    let camStream = null;
-    let facing = 'environment';
-
-    async function camStart() {
-      if (!needBridge('cam-out')) return;
+  <script type="module">
+    (async () => {
       try {
-        camStop(true);
-        camStream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: facing, width: { ideal: 1280 }, height: { ideal: 720 } },
-          audio: false
-        });
-        $('cam').srcObject = camStream;
-        await $('cam').play().catch(() => { });
-        $('cam-stop').disabled = false;
-        $('cam-shot').disabled = false;
-        const track = camStream.getVideoTracks()[0];
-        const st = track.getSettings ? track.getSettings() : {};
-        show('cam-out', {
-          facing,
-          label: track.label,
-          size: `${st.width || '?'}x${st.height || '?'}`,
-          tracks: camStream.getTracks().length
-        });
-        log('s', 'camera started', track.label);
-      } catch (e) {
-        show('cam-out', errText(e));
-        log('e', 'camera failed', errText(e));
-      }
-    }
-
-    function camStop(silent) {
-      if (camStream) {
-        camStream.getTracks().forEach(t => t.stop());
-        camStream = null;
-        $('cam').srcObject = null;
-        if (!silent) log('i', 'camera stopped');
-      }
-      $('cam-stop').disabled = true;
-      $('cam-shot').disabled = true;
-    }
-
-    $('cam-start').onclick = camStart;
-    $('cam-stop').onclick = () => camStop(false);
-    $('cam-swap').onclick = () => {
-      facing = facing === 'environment' ? 'user' : 'environment';
-      log('i', 'facing →', facing);
-      if (camStream) camStart(); else show('cam-out', `facing set to ${facing}`);
-    };
-
-    $('cam-shot').onclick = () => {
-      const v = $('cam');
-      if (!camStream || !v.videoWidth) { log('w', 'no frame yet'); return; }
-      const c = document.createElement('canvas');
-      c.width = v.videoWidth;
-      c.height = v.videoHeight;
-      c.getContext('2d').drawImage(v, 0, 0);
-      const img = $('cam-shot-img');
-      img.src = c.toDataURL('image/jpeg', 0.85);
-      img.hidden = false;
-      log('s', 'frame captured', `${c.width}x${c.height}`);
-    };
-
-    /* -------------------------------------------------------- 2. geolocation */
-    $('geo-get').onclick = () => {
-      if (!needBridge('geo-out')) return;
-      if (!navigator.geolocation) { show('geo-out', 'navigator.geolocation missing'); return; }
-      show('geo-out', 'waiting for fix…');
-      navigator.geolocation.getCurrentPosition(
-        (p) => {
-          show('geo-out', {
-            lat: p.coords.latitude,
-            lng: p.coords.longitude,
-            accuracy: p.coords.accuracy,
-            altitude: p.coords.altitude,
-            timestamp: new Date(p.timestamp).toISOString()
-          });
-          log('s', 'position', p.coords.latitude.toFixed(5) + ', ' + p.coords.longitude.toFixed(5));
-        },
-        (e) => { show('geo-out', errText(e)); log('e', 'geolocation failed', errText(e)); },
-        { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
-      );
-    };
-
-    let geoWatch = null;
-    $('geo-watch').onclick = () => {
-      if (!needBridge('geo-out')) return;
-      if (geoWatch !== null) {
-        navigator.geolocation.clearWatch(geoWatch);
-        geoWatch = null;
-        log('i', 'watch cleared');
-        return;
-      }
-      let n = 0;
-      geoWatch = navigator.geolocation.watchPosition(
-        (p) => {
-          n++;
-          const line = `#${n} ${p.coords.latitude.toFixed(6)}, ${p.coords.longitude.toFixed(6)} (±${Math.round(p.coords.accuracy)}m)`;
-          $('geo-out').textContent += line + '\n';
-          log('s', 'fix', line);
-          if (n >= 3) { navigator.geolocation.clearWatch(geoWatch); geoWatch = null; log('i', 'watch done'); }
-        },
-        (e) => { log('e', 'watch error', errText(e)); geoWatch = null; },
-        { enableHighAccuracy: true, maximumAge: 5000 }
-      );
-      show('geo-out', 'watching (3 fixes)…\n');
-    };
-
-    /* --------------------------------------------------------------- 3. mic */
-    let micStream = null, audioCtx = null, rafId = null;
-
-    $('mic-start').onclick = async () => {
-      if (!needBridge('mic-out')) return;
-      try {
-        micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        await audioCtx.resume();
-        const src = audioCtx.createMediaStreamSource(micStream);
-        const an = audioCtx.createAnalyser();
-        an.fftSize = 512;
-        src.connect(an);
-        const buf = new Uint8Array(an.frequencyBinCount);
-        const track = micStream.getAudioTracks()[0];
-
-        const loop = () => {
-          an.getByteFrequencyData(buf);
-          let sum = 0;
-          for (let i = 0; i < buf.length; i++) sum += buf[i];
-          const level = Math.min(100, Math.round((sum / buf.length) * 1.8));
-          $('mic-bar').style.width = level + '%';
-          rafId = requestAnimationFrame(loop);
-        };
-        loop();
-
-        $('mic-stop').disabled = false;
-        $('mic-start').disabled = true;
-        show('mic-out', { track: track.label, sampleRate: audioCtx.sampleRate, state: track.readyState });
-        log('s', 'mic started', track.label);
-      } catch (e) {
-        const hint = e.name === 'NotReadableError'
-          ? '\n(hardware/permission layer: check RECORD_AUDIO + MODIFY_AUDIO_SETTINGS, and that no other app is holding the mic)'
-          : '';
-        show('mic-out', errText(e) + hint);
-        log('e', 'mic failed', errText(e));
-      }
-    };
-
-    $('mic-stop').onclick = () => {
-      if (rafId) cancelAnimationFrame(rafId);
-      if (micStream) micStream.getTracks().forEach(t => t.stop());
-      if (audioCtx) audioCtx.close().catch(() => { });
-      micStream = null; audioCtx = null; rafId = null;
-      $('mic-bar').style.width = '0%';
-      $('mic-stop').disabled = true;
-      $('mic-start').disabled = false;
-      show('mic-out', 'stopped');
-      log('i', 'mic stopped');
-    };
-
-    /* ------------------------------------------------------- 4. file picker */
-    $('file').addEventListener('change', (ev) => {
-      const f = ev.target.files && ev.target.files[0];
-      if (!f) { show('file-out', 'cancelled'); log('w', 'file picker cancelled'); return; }
-      const rows = [`name: ${f.name}`, `type: ${f.type || 'unknown'}`, `size: ${(f.size / 1024).toFixed(1)} KB`];
-      show('file-out', rows.join('\n'));
-      log('s', 'file picked', f.name, f.size + ' bytes');
-      if (f.type.startsWith('image/')) {
-        const url = URL.createObjectURL(f);
-        const img = $('file-img');
-        img.src = url;
-        img.hidden = false;
-        img.onload = () => URL.revokeObjectURL(url);
-      }
-    });
-
-    /* ------------------------------------------------------------- 5. share */
-    $('share-go').onclick = () => {
-      if (!needBridge('share-out')) return;
-      const text = $('share-text').value;
-      try {
-        N.shareText(text);
-        show('share-out', 'Intent.ACTION_SEND fired');
-        log('s', 'share intent', text);
-      } catch (e) { show('share-out', errText(e)); log('e', 'share failed', errText(e)); }
-    };
-
-    $('intent-typed').onclick = () => {
-      if (!needBridge('share-out')) return;
-      const text = $('share-text').value.trim();
-      if (!/^(https?:|intent:|[a-z][a-z0-9+.-]*:\/\/)/i.test(text)) {
-        show('share-out', 'not a link — try:\nhttps://wa.me/<number>\nhttps://t.me/<user>\nintent://…#Intent;scheme=…;package=…;end');
-        return;
-      }
-      N.openUrl(text);
-      show('share-out', 'opened: ' + text);
-      log('s', 'open link', text);
-    };
-
-    $('intent-open').onclick = () => {
-      if (!needBridge('share-out')) return;
-      N.openUrl('https://developer.android.com/reference/android/webkit/WebView');
-      show('share-out', 'Intent.ACTION_VIEW fired');
-      log('s', 'open url');
-    };
-
-    /* --------------------------------------------------------- 6. clipboard */
-    $('clip-copy').onclick = () => {
-      if (!needBridge('clip-out')) return;
-      N.copyText($('clip-text').value);
-      show('clip-out', 'copied: ' + $('clip-text').value);
-      log('s', 'clipboard write');
-    };
-
-    $('clip-read').onclick = () => {
-      if (!needBridge('clip-out')) return;
-      const v = N.readClipboard();
-      show('clip-out', v ? 'clipboard: ' + v : 'clipboard empty');
-      log('i', 'clipboard read', v);
-    };
-
-    /* ------------------------------------------------- 7. toast + vibrate */
-    $('toast-go').onclick = () => {
-      if (!needBridge('toast-out')) return;
-      N.toastMsg('Hello from native Toast');
-      log('s', 'toast shown');
-    };
-
-    $('vib-go').onclick = () => {
-      if (!needBridge('toast-out')) return;
-      N.vibrate(120);
-      log('s', 'vibrate 120ms');
-    };
-
-    $('vib-pattern').onclick = () => {
-      if (!needBridge('toast-out')) return;
-      // @JavascriptInterface takes an int; pattern done with timed calls
-      [0, 180, 360, 540].forEach((d, i) => setTimeout(() => N.vibrate(i % 2 ? 60 : 140), d));
-      log('s', 'vibrate pattern');
-    };
-
-    /* --------------------------------------------------------- 8. device info */
-    $('dev-go').onclick = () => {
-      if (!needBridge('dev-out')) return;
-      const d = JSON.parse(N.deviceInfo());
-      const table = $('dev-table');
-      table.innerHTML = '';
-      Object.entries(d).forEach(([k, v]) => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `<td>${escapeHtml(k)}</td><td>${escapeHtml(String(v))}</td>`;
-        table.appendChild(tr);
-      });
-      show('dev-out', d);
-      log('s', 'device read', d.model);
-    };
-
-    /* -------------------------------------------------------------- 9. storage */
-    $('store-save').onclick = () => {
-      if (!needBridge('store-out')) return;
-      N.setValue($('store-key').value, $('store-val').value);
-      show('store-out', 'saved to SharedPreferences');
-      log('s', 'prefs save', $('store-key').value);
-    };
-
-    $('store-read').onclick = () => {
-      if (!needBridge('store-out')) return;
-      const v = N.getValue($('store-key').value);
-      show('store-out', v ? `value: ${v}` : '(empty)');
-      log('i', 'prefs read', $('store-key').value);
-    };
-
-    $('store-dump').onclick = () => {
-      if (!needBridge('store-out')) return;
-      show('store-out', JSON.parse(N.storageDump()));
-      log('i', 'prefs dump');
-    };
-
-    /* ---------------------------------------------------------- 10. async ping */
-    const pendingCalls = new Map();
-    let cbSeq = 0;
-
-    window.Silicon = {
-      onNative(id, result) {
-        const resolve = pendingCalls.get(id);
-        if (!resolve) return;
-        pendingCalls.delete(id);
-        resolve(result);
-      }
-    };
-
-    function nativeAsync(payload) {
-      return new Promise((resolve, reject) => {
-        if (!N) return reject(new Error('no bridge'));
-        const id = 'cb' + (++cbSeq);
-        const started = performance.now();
-        pendingCalls.set(id, (r) => { r.jsMs = Math.round(performance.now() - started); resolve(r); });
-        N.ping(payload, id);
-        setTimeout(() => {
-          if (pendingCalls.has(id)) { pendingCalls.delete(id); reject(new Error('timeout')); }
-        }, 6000);
-      });
-    }
-
-    $('ping-go').onclick = async () => {
-      if (!needBridge('ping-out')) return;
-      show('ping-out', 'waiting for native thread…');
-      try {
-        const r = await nativeAsync($('ping-text').value);
-        show('ping-out', r);
-        log('s', 'async round-trip', r.jsMs + 'ms js / ' + r.nativeMs + 'ms native');
-      } catch (e) {
-        show('ping-out', errText(e));
-        log('e', 'ping failed', errText(e));
-      }
-    };
-
-    /* -------------------------------------------------------- 11. notification */
-    $('notif-go').onclick = () => {
-      if (!needBridge('notif-out')) return;
-      const res = N.notifyUser('Silicon', 'Posted from JavaScript via NotificationManager.');
-      show('notif-out', 'result: ' + res + (res === 'asking-permission' ? '\nTap Notify again after granting.' : ''));
-      log('s', 'notification', res);
-    };
-
-    $('notif-bad').onclick = () => {
-      if (!needBridge('notif-out')) return;
-      const res = N.notifyUser('Background ping', 'Second notification, taps back into the activity.');
-      show('notif-out', 'result: ' + res);
-      log('i', 'notification', res);
-    };
-
-    /* ------------------------------------------------------ 12. device state */
-    async function refreshState() {
-      if (!needBridge(null)) return;
-      const table = $('state-table');
-      const rows = [];
-      try {
-        const b = JSON.parse(N.batteryInfo());
-        if (b.error) rows.push(['battery', 'error: ' + b.error]);
-        else {
-          rows.push(['battery', b.percent + '%']);
-          rows.push(['charging', String(b.charging)]);
+        const { createToaster } = await import("https://ui-sdk.dev/web/toast.js");
+        if (typeof createToaster === "function") {
+          const toaster = createToaster();
+          const region = document.getElementById("toastRegion");
+          if (region) region.toaster = toaster;
+          window.OrbitToast = toaster;
         }
-      } catch (e) { rows.push(['battery', 'error']); }
-      try {
-        const n = JSON.parse(N.networkInfo());
-        if (n.error) {
-          rows.push(['network', 'error: ' + n.error]);
-        } else {
-          rows.push(['online', String(n.online)]);
-          rows.push(['wifi', String(n.wifi)]);
-          rows.push(['cellular', String(n.cellular)]);
-          rows.push(['metered', String(n.metered)]);
-        }
-      } catch (e) { rows.push(['network', 'error']); }
-      table.innerHTML = rows.map(([k, v]) => `<tr><td>${escapeHtml(k)}</td><td>${escapeHtml(v)}</td></tr>`).join('');
-      log('i', 'state refreshed', rows);
-    }
-
-    $('state-go').onclick = refreshState;
-
-    /* -------------------------------------------------------- 13. files/print */
-    $('file-save').onclick = () => {
-      if (!needBridge('file-save-out')) return;
-      const name = `silicon-${Date.now()}.txt`;
-      const body = 'Silicon export\n' + new Date().toISOString() + '\ndevice: ' +
-        (N ? JSON.parse(N.deviceInfo()).model : 'n/a') + '\n';
-      const res = N.saveFile(name, body);
-      show('file-save-out', res);
-      log(res.startsWith('failed') ? 'e' : 's', 'save file', res);
-    };
-
-    $('print-go').onclick = () => {
-      if (!needBridge('file-save-out')) return;
-      N.printPage();
-      log('s', 'print sheet opened');
-    };
-
-    /* ----------------------------------------------------------- 14. dialogs */
-    $('dlg-alert').onclick = () => {
-      alert('This is a native AlertDialog triggered by window.alert().');
-      show('dlg-out', 'alert dismissed');
-      log('i', 'alert dialog shown');
-    };
-
-    $('dlg-confirm').onclick = () => {
-      const ok = confirm('Native confirm dialog. Pick something.');
-      show('dlg-out', 'returned: ' + ok);
-      log('i', 'confirm →', ok);
-    };
-
-    /* ----------------------------------------------------------------- log */
-    $('log-clear').onclick = () => { logEl.innerHTML = ''; };
-    $('log-copy').onclick = () => {
-      const text = logEl.innerText;
-      if (N) N.copyText(text);
-      else navigator.clipboard?.writeText(text);
-      log('s', 'log copied');
-    };
-
-    /* ------------------------------------------------------------- lifecycle */
-    document.addEventListener('visibilitychange', () => {
-      log('i', 'visibility', document.visibilityState);
-      // camera/mic cannot survive backgrounding on most devices; stop cleanly
-      if (document.visibilityState === 'hidden') {
-        camStop(true);
-        log('w', 'streams stopped (backgrounded)');
+      } catch (error) {
+        window.OrbitToast = null;
       }
-    });
-
-    window.addEventListener('error', (e) => log('e', 'js error', e.message));
-    window.addEventListener('unhandledrejection', (e) => log('e', 'promise', String(e.reason)));
+      try {
+        const { createAgent, registerTools } = await import("https://ui-sdk.dev/web/agent.js");
+        window.OrbitAgent = createAgent({ allow: (step) => !step.confirm });
+        window.OrbitUnregisterTools = registerTools(window.OrbitAgent, { allow: () => true });
+      } catch (error) {
+        window.OrbitAgent = null;
+      }
+    })();
   </script>
 </body>
-
 </html>

@@ -1,0 +1,12 @@
+.gradle/
+shell/
+settings.gradle
+build.gradle
+local.properties
+artifacts/
+app/ui-sdk/
+node_modules/
+test-results/
+playwright-report/
+__pycache__/
+*.pyc

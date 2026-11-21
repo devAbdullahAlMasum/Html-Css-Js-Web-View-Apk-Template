@@ -1,9 +1,10 @@
-package com.fazlerabbi.silicon;
+package app.orbit.music;
 
 import android.Manifest;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.DownloadManager;
+import android.content.BroadcastReceiver;
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
@@ -14,8 +15,11 @@ import android.content.ContentValues;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.IntentFilter;
+import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
+import android.media.MediaMetadataRetriever;
 import android.net.ConnectivityManager;
 import android.net.Network;
 import android.net.NetworkCapabilities;
@@ -38,6 +42,7 @@ import android.webkit.PermissionRequest;
 import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceRequest;
+import android.webkit.WebResourceResponse;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
@@ -45,18 +50,26 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.URLDecoder;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
- * Silicon: a WebView shell that demonstrates which native Android capabilities
- * can be wired to plain HTML/CSS/JS with zero third-party dependencies.
+ * Orbit: a secure WebView shell for native music playback, downloads, and imports.
  */
 public class MainActivity extends Activity {
 
@@ -65,9 +78,13 @@ public class MainActivity extends Activity {
     private static final int REQ_FILE = 1003;
     private static final int REQ_NOTIFY = 1004;
     private static final int REQ_DOWNLOAD = 1005;
+    private static final int REQ_ORBIT_IMPORT = 1006;
+    private static final int REQ_PLAY_NOTIFY = 1007;
 
-    private static final String CHANNEL_ID = "silicon_default";
-    private static final String PREFS = "silicon_prefs";
+    private static final String CHANNEL_ID = "orbit_default";
+    private static final String PREFS = "orbit_prefs";
+    private static final String ORBIT_ORIGIN = "https://orbit.invalid";
+    private static final String ORBIT_HOST = "orbit.invalid";
 
     private WebView webView;
 
@@ -80,6 +97,40 @@ public class MainActivity extends Activity {
     private String pendingNotifyBody;
 
     private String pendingDownloadUrl;
+    private String pendingOrbitImportRequestId;
+    private boolean notificationPermissionRequested;
+    private boolean orbitReceiverRegistered;
+    private boolean downloadReceiverRegistered;
+    private final ExecutorService orbitExecutor = Executors.newSingleThreadExecutor();
+
+    private final BroadcastReceiver orbitReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            if (OrbitPlaybackService.ACTION_RESPONSE.equals(intent.getAction())) {
+                String requestId = intent.getStringExtra(OrbitPlaybackService.EXTRA_REQUEST_ID);
+                String raw = intent.getStringExtra(OrbitPlaybackService.EXTRA_RESULT);
+                try {
+                    deliverOrbitResult(requestId, new JSONObject(raw == null ? "{}" : raw));
+                } catch (Exception ignored) {
+                }
+            } else if (OrbitPlaybackService.ACTION_EVENT.equals(intent.getAction())) {
+                String raw = intent.getStringExtra(OrbitPlaybackService.EXTRA_EVENT);
+                try {
+                    deliverOrbitEvent(new JSONObject(raw == null ? "{}" : raw));
+                } catch (Exception ignored) {
+                }
+            }
+        }
+    };
+
+    private final BroadcastReceiver downloadReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            if (DownloadManager.ACTION_DOWNLOAD_COMPLETE.equals(intent.getAction())) {
+                handleDownloadCompletion(intent);
+            }
+        }
+    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -88,29 +139,44 @@ public class MainActivity extends Activity {
 
         webView = (WebView) findViewById(R.id.web);
 
-        // Lets you inspect this page from chrome://inspect on your desktop.
-        WebView.setWebContentsDebuggingEnabled(true);
+        // Lets you inspect debug builds from chrome://inspect on your desktop.
+        if ((getApplicationInfo().flags & ApplicationInfo.FLAG_DEBUGGABLE) != 0) {
+            WebView.setWebContentsDebuggingEnabled(true);
+        }
 
         WebSettings s = webView.getSettings();
         s.setJavaScriptEnabled(true);
         s.setDomStorageEnabled(true);
         s.setAllowFileAccess(true);
+        s.setAllowFileAccessFromFileURLs(false);
+        s.setAllowUniversalAccessFromFileURLs(false);
         s.setMediaPlaybackRequiresUserGesture(false);
         s.setGeolocationEnabled(true);
-        s.setMixedContentMode(WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE);
+        s.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
 
-        webView.setBackgroundColor(0xFF0B1020);
+        webView.setBackgroundColor(0xFF15131B);
         webView.addJavascriptInterface(new Bridge(), "Native");
         webView.setWebChromeClient(new ChromeClient());
+        registerOrbitReceiver();
+        registerDownloadReceiver();
         webView.setWebViewClient(new WebViewClient() {
             @Override
             public boolean shouldOverrideUrlLoading(WebView view, String url) {
-                return false;
+                return handleNavigation(url);
             }
 
             @Override
             public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
-                return false;
+                return request == null || request.getUrl() == null
+                        ? true : handleNavigation(request.getUrl().toString());
+            }
+
+            @Override
+            public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
+                if (request == null || request.getUrl() == null) return null;
+                if (request.isForMainFrame() && (!isTrustedHttps(request.getUrl(), ORBIT_HOST)
+                        || !"GET".equals(request.getMethod()))) return notFoundResponse(false);
+                return interceptOrbitAsset(request.getUrl().toString());
             }
         });
 
@@ -130,13 +196,308 @@ public class MainActivity extends Activity {
             }
         });
 
-        webView.loadUrl("file:///android_asset/index.html");
+        webView.loadUrl(ORBIT_ORIGIN + "/index.html");
     }
 
     // ---------------------------------------------------------------- helpers
 
+    private void registerOrbitReceiver() {
+        if (orbitReceiverRegistered) return;
+        IntentFilter filter = new IntentFilter();
+        filter.addAction(OrbitPlaybackService.ACTION_RESPONSE);
+        filter.addAction(OrbitPlaybackService.ACTION_EVENT);
+        if (Build.VERSION.SDK_INT >= 33) {
+            registerReceiver(orbitReceiver, filter, OrbitPlaybackService.INTERNAL_PERMISSION,
+                    null, Context.RECEIVER_NOT_EXPORTED);
+        } else {
+            registerReceiver(orbitReceiver, filter, OrbitPlaybackService.INTERNAL_PERMISSION, null);
+        }
+        orbitReceiverRegistered = true;
+    }
+
+    private void registerDownloadReceiver() {
+        if (downloadReceiverRegistered) return;
+        IntentFilter filter = new IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE);
+        if (Build.VERSION.SDK_INT >= 33) {
+            registerReceiver(downloadReceiver, filter, Context.RECEIVER_EXPORTED);
+        } else {
+            registerReceiver(downloadReceiver, filter);
+        }
+        downloadReceiverRegistered = true;
+    }
+
+    private boolean handleNavigation(String url) {
+        try {
+            Uri uri = Uri.parse(url);
+            if (ORBIT_HOST.equalsIgnoreCase(uri.getHost())) {
+                return !isTrustedHttps(uri, ORBIT_HOST);
+            }
+            if ("about".equalsIgnoreCase(uri.getScheme())) return true;
+            openExternal(uri);
+        } catch (Exception ignored) {
+        }
+        return true;
+    }
+
+    private boolean isTrustedHttps(Uri uri, String expectedHost) {
+        if (uri == null || expectedHost == null) return false;
+        if (!"https".equalsIgnoreCase(uri.getScheme())) return false;
+        if (!expectedHost.equalsIgnoreCase(uri.getHost())) return false;
+        int port = uri.getPort();
+        if (port != -1 && port != 443) return false;
+        return uri.getUserInfo() == null;
+    }
+
+    /**
+     * Serves bundled files from a trusted virtual HTTPS origin. This keeps DOM storage
+     * consistent and lets the ui-sdk CDN tags resolve without a frontend build step.
+     */
+    private WebResourceResponse interceptOrbitAsset(String url) {
+        try {
+            Uri uri = Uri.parse(url);
+            String host = uri.getHost();
+            if (host == null || !"https".equalsIgnoreCase(uri.getScheme())) return null;
+            host = host.toLowerCase(java.util.Locale.US);
+
+            String decodedPath = Uri.decode(uri.getEncodedPath() == null ? "" : uri.getEncodedPath());
+            String assetPath;
+            boolean sdkRequest = false;
+            if (ORBIT_HOST.equals(host) && isTrustedHttps(uri, ORBIT_HOST)) {
+                if (decodedPath.isEmpty() || "/".equals(decodedPath)) decodedPath = "/index.html";
+                assetPath = decodedPath.startsWith("/") ? decodedPath.substring(1) : decodedPath;
+            } else if ("ui-sdk.dev".equals(host) && isTrustedHttps(uri, "ui-sdk.dev")) {
+                if ("/web.js".equals(decodedPath)) assetPath = "ui-sdk/web.js";
+                else if ("/web.css".equals(decodedPath)) assetPath = "ui-sdk/web.css";
+                else if (decodedPath.startsWith("/web/")) {
+                    assetPath = "ui-sdk" + decodedPath;
+                } else {
+                    return null;
+                }
+                sdkRequest = true;
+            } else {
+                return null;
+            }
+
+            if (!isSafeAssetPath(assetPath)) return notFoundResponse(sdkRequest);
+            InputStream stream;
+            try {
+                stream = getAssets().open(assetPath);
+            } catch (Exception missing) {
+                return notFoundResponse(sdkRequest);
+            }
+            String mime = mimeType(assetPath);
+            String encoding = isTextAsset(assetPath) ? "utf-8" : null;
+            Map<String, String> headers = new HashMap<String, String>();
+            headers.put("Cache-Control", "no-store");
+            headers.put("Content-Security-Policy", "frame-src 'none'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'");
+            if (sdkRequest) headers.put("Access-Control-Allow-Origin", "*");
+            return new WebResourceResponse(mime, encoding, 200, "OK", headers, stream);
+        } catch (Exception ignored) {
+            return null;
+        }
+    }
+
+    private boolean isSafeAssetPath(String path) {
+        if (path == null || path.isEmpty() || path.indexOf('\0') >= 0) return false;
+        if (path.startsWith("/") || path.contains("\\")) return false;
+        String[] parts = path.split("/");
+        for (String part : parts) {
+            if ("..".equals(part)) return false;
+        }
+        return true;
+    }
+
+    private WebResourceResponse notFoundResponse(boolean cors) {
+        Map<String, String> headers = new HashMap<String, String>();
+        if (cors) headers.put("Access-Control-Allow-Origin", "*");
+        return new WebResourceResponse("text/plain", "utf-8", 404, "Not Found", headers,
+                new ByteArrayInputStream(new byte[0]));
+    }
+
+    private String mimeType(String path) {
+        String lower = path.toLowerCase(java.util.Locale.US);
+        if (lower.endsWith(".html") || lower.endsWith(".htm")) return "text/html";
+        if (lower.endsWith(".js") || lower.endsWith(".mjs")) return "text/javascript";
+        if (lower.endsWith(".css")) return "text/css";
+        if (lower.endsWith(".json") || lower.endsWith(".map")) return "application/json";
+        if (lower.endsWith(".svg")) return "image/svg+xml";
+        if (lower.endsWith(".png")) return "image/png";
+        if (lower.endsWith(".jpg") || lower.endsWith(".jpeg")) return "image/jpeg";
+        if (lower.endsWith(".webp")) return "image/webp";
+        if (lower.endsWith(".ico")) return "image/x-icon";
+        if (lower.endsWith(".wav")) return "audio/wav";
+        if (lower.endsWith(".mp3")) return "audio/mpeg";
+        if (lower.endsWith(".m4a")) return "audio/mp4";
+        if (lower.endsWith(".woff2")) return "font/woff2";
+        if (lower.endsWith(".woff")) return "font/woff";
+        return "application/octet-stream";
+    }
+
+    private boolean isTextAsset(String path) {
+        String lower = path.toLowerCase(java.util.Locale.US);
+        return lower.endsWith(".html") || lower.endsWith(".htm") || lower.endsWith(".js")
+                || lower.endsWith(".mjs") || lower.endsWith(".css") || lower.endsWith(".json")
+                || lower.endsWith(".map") || lower.endsWith(".svg") || lower.endsWith(".txt");
+    }
+
+    private JSONObject normalizeServicePayload(String method, JSONObject payload) throws JSONException {
+        JSONObject normalized = new JSONObject(payload.toString());
+        if ("play".equals(method) && !normalized.has("queue")) {
+            JSONObject track = trackFromFlatPayload(normalized);
+            normalized.put("queue", new JSONArray().put(track));
+            normalized.put("index", 0);
+        }
+        if ("download".equals(method) && !normalized.has("track")) {
+            normalized.put("track", trackFromFlatPayload(normalized));
+        }
+        if ("enqueue".equals(method) && !normalized.has("track")) {
+            normalized.put("track", trackFromFlatPayload(normalized));
+        }
+        if ("rename".equals(method) && !normalized.has("id") && normalized.has("trackId")) {
+            normalized.put("id", nativeTrackId(normalized.getString("trackId")));
+        }
+        if ("removeDownload".equals(method) && normalized.has("id")) {
+            normalized.put("id", nativeTrackId(normalized.getString("id")));
+        }
+        if ("control".equals(method) && "play".equals(normalized.optString("action", ""))) {
+            normalized.put("action", "resume");
+        }
+        return normalized;
+    }
+
+    private JSONObject trackFromFlatPayload(JSONObject payload) throws JSONException {
+        JSONObject track = new JSONObject();
+        String id = payload.optString("trackId", payload.optString("id", ""));
+        String videoId = payload.optString("videoId", "").trim();
+        if (!videoId.isEmpty() && !OrbitTrack.isYoutubeVideo(videoId)) videoId = "";
+        if (videoId.isEmpty() && id.startsWith("yt:")) {
+            String candidate = id.substring(3);
+            if (OrbitTrack.isYoutubeVideo(candidate)) videoId = candidate;
+        }
+        if (videoId.isEmpty() && id.startsWith("youtube:")) {
+            String candidate = id.substring(8);
+            if (OrbitTrack.isYoutubeVideo(candidate)) videoId = candidate;
+        }
+
+        if (!videoId.isEmpty()) {
+            track.put("id", "youtube:" + videoId);
+            track.put("videoId", videoId);
+            track.put("source", "youtube");
+        } else if (id.startsWith("demo:")) {
+            track.put("id", id);
+            track.put("source", "demo");
+        } else if ("local".equals(payload.optString("source", ""))
+                || "import".equals(payload.optString("source", ""))) {
+            if (!payload.has("localUri")) {
+                throw new JSONException("Imported audio requires the native document picker");
+            }
+            track.put("id", id);
+            track.put("source", "local");
+            track.put("localUri", payload.getString("localUri"));
+        } else if (payload.has("url") && payload.optString("url", "").startsWith("https://")) {
+            track.put("id", id.isEmpty() ? "direct:imported" : id);
+            track.put("source", "direct");
+            track.put("audioUrl", payload.getString("url"));
+        } else {
+            throw new JSONException("Track payload has no playable source");
+        }
+        track.put("title", payload.optString("title", "Orbit track"));
+        track.put("artist", payload.optString("artist", "Unknown artist"));
+        track.put("duration", Math.max(0L, payload.optLong("duration", 0L)));
+        String artwork = payload.optString("artworkUrl", "");
+        if (artwork.startsWith("https://")) track.put("artworkUrl", artwork);
+        return track;
+    }
+
+    private String nativeTrackId(String id) {
+        if (id != null && id.startsWith("yt:")) return "youtube:" + id.substring(3);
+        return id == null ? "" : id;
+    }
+
+    private void deliverOrbitResult(final String requestId, final JSONObject result) {
+        if (requestId == null || requestId.isEmpty()) return;
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                if (webView == null) return;
+                String script = "window.OrbitNative && window.OrbitNative.onResult("
+                        + JSONObject.quote(requestId) + "," + result + ")";
+                webView.evaluateJavascript(script, null);
+            }
+        });
+    }
+
+    private void deliverOrbitEvent(final JSONObject event) {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                if (webView == null) return;
+                String script = "window.OrbitNative && window.OrbitNative.onEvent(" + event + ")";
+                webView.evaluateJavascript(script, null);
+            }
+        });
+    }
+
+    private void handleDownloadCompletion(Intent intent) {
+        final long managerId = intent.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, -1L);
+        if (managerId < 0L) return;
+        orbitExecutor.execute(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    JSONArray downloads = OrbitDownloadStore.refreshAndList(MainActivity.this);
+                    for (int i = 0; i < downloads.length(); i++) {
+                        JSONObject download = downloads.optJSONObject(i);
+                        if (download == null
+                                || download.optLong("downloadManagerId", -1L) != managerId) {
+                            continue;
+                        }
+                        deliverOrbitEvent(createDownloadEvent(download));
+                    }
+                } catch (Exception ignored) {
+                }
+            }
+        });
+    }
+
+    private JSONObject createDownloadEvent(JSONObject download) throws JSONException {
+        JSONObject event = new JSONObject();
+        event.put("type", "download");
+        event.put("id", download.optString("id"));
+        JSONObject track = download.optJSONObject("track");
+        event.put("track", track == null ? JSONObject.NULL : track);
+        if (track != null) {
+            String[] fields = {"title", "originalTitle", "artist", "source",
+                    "videoId", "duration", "artworkUrl"};
+            for (String field : fields) {
+                if (track.has(field)) event.put(field, track.get(field));
+            }
+        }
+        event.put("status", download.optString("status", "queued"));
+        event.put("progress", download.optInt("progress", 0));
+        if (download.has("downloadedBytes")) {
+            event.put("downloadedBytes", download.optLong("downloadedBytes", 0L));
+        }
+        if (download.has("totalBytes")) {
+            event.put("totalBytes", download.optLong("totalBytes", 0L));
+        }
+        if (download.has("localUri")) event.put("localUri", download.optString("localUri"));
+        if (download.has("error")) event.put("error", download.optString("error"));
+        return event;
+    }
+
     private boolean has(String permission) {
         return checkSelfPermission(permission) == PackageManager.PERMISSION_GRANTED;
+    }
+
+    private void requestPlaybackNotificationPermission() {
+        if (Build.VERSION.SDK_INT < 33
+                || has(Manifest.permission.POST_NOTIFICATIONS)
+                || notificationPermissionRequested) {
+            return;
+        }
+        notificationPermissionRequested = true;
+        requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS}, REQ_PLAY_NOTIFY);
     }
 
     private void enqueueDownload(String url) {
@@ -145,7 +506,7 @@ public class MainActivity extends Activity {
             req.setNotificationVisibility(
                     DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
             req.setDestinationInExternalPublicDir(
-                    Environment.DIRECTORY_DOWNLOADS, "silicon-" + System.currentTimeMillis());
+                    Environment.DIRECTORY_DOWNLOADS, "orbit-" + System.currentTimeMillis());
             DownloadManager dm = (DownloadManager) getSystemService(Context.DOWNLOAD_SERVICE);
             if (dm != null) dm.enqueue(req);
             toast("Download queued");
@@ -410,6 +771,10 @@ public class MainActivity extends Activity {
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (requestCode == REQ_ORBIT_IMPORT) {
+            handleOrbitImportResult(resultCode, data);
+            return;
+        }
         if (requestCode == REQ_FILE) {
             if (fileCallback == null) return;
             Uri[] results = null;
@@ -429,6 +794,110 @@ public class MainActivity extends Activity {
             return;
         }
         super.onActivityResult(requestCode, resultCode, data);
+    }
+
+    private void handleOrbitImportResult(int resultCode, Intent data) {
+        final String requestId = pendingOrbitImportRequestId;
+        pendingOrbitImportRequestId = null;
+        if (requestId == null) return;
+        if (resultCode != RESULT_OK || data == null) {
+            deliverOrbitResult(requestId, errorObject("Import cancelled"));
+            return;
+        }
+
+        final ArrayList<Uri> uris = new ArrayList<Uri>();
+        if (data.getClipData() != null) {
+            for (int i = 0; i < data.getClipData().getItemCount(); i++) {
+                uris.add(data.getClipData().getItemAt(i).getUri());
+            }
+        } else if (data.getData() != null) {
+            uris.add(data.getData());
+        }
+        if (uris.isEmpty()) {
+            deliverOrbitResult(requestId, errorObject("No audio files were selected"));
+            return;
+        }
+
+        for (Uri uri : uris) {
+            try {
+                getContentResolver().takePersistableUriPermission(uri,
+                        Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            } catch (Exception ignored) {
+            }
+        }
+
+        orbitExecutor.execute(new Runnable() {
+            @Override
+            public void run() {
+                JSONArray tracks = new JSONArray();
+                for (Uri uri : uris) {
+                    try {
+                        tracks.put(readImportedTrack(uri));
+                    } catch (Exception ignored) {
+                    }
+                }
+                try {
+                    JSONObject result = new JSONObject();
+                    if (tracks.length() == 0) {
+                        result.put("error", "No readable audio metadata was found");
+                    } else {
+                        result.put("tracks", tracks);
+                    }
+                    deliverOrbitResult(requestId, result);
+                } catch (Exception error) {
+                    deliverOrbitResult(requestId, errorObject(error.getMessage()));
+                }
+            }
+        });
+    }
+
+    private JSONObject readImportedTrack(Uri uri) throws Exception {
+        String title = "Imported audio";
+        String artist = "Unknown artist";
+        long duration = 0L;
+        MediaMetadataRetriever retriever = new MediaMetadataRetriever();
+        try {
+            retriever.setDataSource(this, uri);
+            String metadataTitle = retriever.extractMetadata(
+                    MediaMetadataRetriever.METADATA_KEY_TITLE);
+            String metadataArtist = retriever.extractMetadata(
+                    MediaMetadataRetriever.METADATA_KEY_ARTIST);
+            String metadataDuration = retriever.extractMetadata(
+                    MediaMetadataRetriever.METADATA_KEY_DURATION);
+            if (metadataTitle != null && !metadataTitle.trim().isEmpty()) title = metadataTitle.trim();
+            if (metadataArtist != null && !metadataArtist.trim().isEmpty()) artist = metadataArtist.trim();
+            if (metadataDuration != null) {
+                try {
+                    duration = Math.max(0L, Long.parseLong(metadataDuration) / 1000L);
+                } catch (NumberFormatException ignored) {
+                }
+            }
+        } finally {
+            retriever.release();
+        }
+
+        String id = "local:" + UUID.nameUUIDFromBytes(
+                uri.toString().getBytes("UTF-8")).toString().replace("-", "");
+        JSONObject track = new JSONObject();
+        track.put("id", id);
+        track.put("source", "local");
+        track.put("title", title);
+        track.put("originalTitle", title);
+        track.put("artist", artist);
+        track.put("duration", duration);
+        track.put("localUri", uri.toString());
+        return track;
+    }
+
+    private JSONObject errorObject(String message) {
+        try {
+            JSONObject error = new JSONObject();
+            error.put("error", message == null || message.isEmpty()
+                    ? "Native request failed" : message);
+            return error;
+        } catch (Exception ignored) {
+            return new JSONObject();
+        }
     }
 
     @Override
@@ -480,6 +949,13 @@ public class MainActivity extends Activity {
             }
             pendingNotifyTitle = null;
             pendingNotifyBody = null;
+            return;
+        }
+
+        if (requestCode == REQ_PLAY_NOTIFY) {
+            if (grantResults.length == 0 || grantResults[0] != PackageManager.PERMISSION_GRANTED) {
+                toast("Playback notifications are off", "System media controls remain available.");
+            }
             return;
         }
 
@@ -537,7 +1013,7 @@ public class MainActivity extends Activity {
         public void copyText(String text) {
             ClipboardManager cm = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
             if (cm != null) {
-                cm.setPrimaryClip(ClipData.newPlainText("Silicon", text));
+                cm.setPrimaryClip(ClipData.newPlainText("Orbit", text));
                 toast("Copied to clipboard");
             }
         }
@@ -668,7 +1144,7 @@ public class MainActivity extends Activity {
                 public void run() {
                     try {
                         PrintManager pm = (PrintManager) getSystemService(Context.PRINT_SERVICE);
-                        String job = "Silicon-" + System.currentTimeMillis();
+                        String job = "Orbit-" + System.currentTimeMillis();
                         if (pm != null) {
                             pm.print(job, webView.createPrintDocumentAdapter(job), null);
                         }
@@ -683,6 +1159,9 @@ public class MainActivity extends Activity {
         @JavascriptInterface
         public String saveFile(String name, String content) {
             try {
+                if (name == null || name.trim().isEmpty() || name.length() > 120
+                        || name.contains("/") || name.contains("\\") || name.indexOf('\0') >= 0
+                        || ".".equals(name) || "..".equals(name)) return "failed: invalid file name";
                 byte[] bytes = content.getBytes("UTF-8");
                 if (Build.VERSION.SDK_INT >= 29) {
                     ContentValues cv = new ContentValues();
@@ -703,6 +1182,9 @@ public class MainActivity extends Activity {
                 if (dir == null) return "failed: no external dir";
                 if (!dir.exists()) dir.mkdirs();
                 File f = new File(dir, name);
+                if (!f.getCanonicalFile().getParentFile().equals(dir.getCanonicalFile())) {
+                    return "failed: invalid file path";
+                }
                 FileOutputStream fos = new FileOutputStream(f);
                 fos.write(bytes);
                 fos.close();
@@ -710,6 +1192,128 @@ public class MainActivity extends Activity {
             } catch (Exception e) {
                 return "failed: " + e.getMessage();
             }
+        }
+
+        /**
+         * Orbit's guarded async API. Every call returns through window.OrbitNative.onResult().
+         */
+        @JavascriptInterface
+        public void orbitRequest(final String method, final String payloadJson,
+                                 final String requestId) {
+            if (method == null || requestId == null || requestId.isEmpty()
+                    || requestId.length() > 160) {
+                deliverOrbitResult(requestId, errorObject("Invalid native request"));
+                return;
+            }
+            final JSONObject payload;
+            try {
+                payload = new JSONObject(payloadJson == null ? "{}" : payloadJson);
+            } catch (Exception error) {
+                deliverOrbitResult(requestId, errorObject("Invalid JSON payload"));
+                return;
+            }
+
+            if ("search".equals(method)) {
+                String query = payload.optString("query", "").trim();
+                if (query.isEmpty()) {
+                    deliverOrbitResult(requestId, errorObject("Search query is empty"));
+                    return;
+                }
+                OrbitYouTube.searchAsync(MainActivity.this, query, new OrbitYouTube.Callback() {
+                    @Override
+                    public void onSuccess(JSONObject result) {
+                        deliverOrbitResult(requestId, result);
+                    }
+
+                    @Override
+                    public void onError(String message) {
+                        deliverOrbitResult(requestId, errorObject(message));
+                    }
+                });
+                return;
+            }
+
+            if ("state".equals(method)) {
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        deliverOrbitResult(requestId,
+                                OrbitPlaybackService.stateSnapshot(MainActivity.this));
+                    }
+                });
+                return;
+            }
+
+            if ("downloads".equals(method)) {
+                orbitExecutor.execute(new Runnable() {
+                    @Override
+                    public void run() {
+                        try {
+                            JSONObject result = new JSONObject();
+                            JSONArray downloads = OrbitDownloadStore.refreshAndList(MainActivity.this);
+                            result.put("tracks", downloads);
+                            result.put("downloads", downloads);
+                            deliverOrbitResult(requestId, result);
+                            for (int i = 0; i < downloads.length(); i++) {
+                                JSONObject download = downloads.optJSONObject(i);
+                                if (download == null) continue;
+                                deliverOrbitEvent(createDownloadEvent(download));
+                            }
+                        } catch (Exception error) {
+                            deliverOrbitResult(requestId, errorObject(error.getMessage()));
+                        }
+                    }
+                });
+                return;
+            }
+
+            if ("import".equals(method)) {
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        if (pendingOrbitImportRequestId != null) {
+                            deliverOrbitResult(requestId,
+                                    errorObject("Another import is already open"));
+                            return;
+                        }
+                        pendingOrbitImportRequestId = requestId;
+                        try {
+                            Intent picker = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+                            picker.addCategory(Intent.CATEGORY_OPENABLE);
+                            picker.setType("audio/*");
+                            picker.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
+                            picker.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION
+                                    | Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION);
+                            startActivityForResult(picker, REQ_ORBIT_IMPORT);
+                        } catch (Exception error) {
+                            pendingOrbitImportRequestId = null;
+                            deliverOrbitResult(requestId, errorObject(error.getMessage()));
+                        }
+                    }
+                });
+                return;
+            }
+
+            if ("play".equals(method) || "control".equals(method) || "queue".equals(method)
+                    || "enqueue".equals(method) || "download".equals(method)
+                    || "removeDownload".equals(method) || "rename".equals(method)) {
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        try {
+                            if ("play".equals(method)) requestPlaybackNotificationPermission();
+                            JSONObject servicePayload = normalizeServicePayload(method, payload);
+                            OrbitPlaybackService.sendCommand(MainActivity.this, method,
+                                    servicePayload, requestId);
+                        } catch (Exception error) {
+                            deliverOrbitResult(requestId, errorObject(error.getMessage()));
+                        }
+                    }
+                });
+                return;
+            }
+
+            deliverOrbitResult(requestId, errorObject("Unsupported native method: " + method));
         }
 
         /**
@@ -751,7 +1355,7 @@ public class MainActivity extends Activity {
 
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 NotificationChannel ch = new NotificationChannel(
-                        CHANNEL_ID, "Silicon", NotificationManager.IMPORTANCE_DEFAULT);
+                        CHANNEL_ID, "Orbit", NotificationManager.IMPORTANCE_DEFAULT);
                 nm.createNotificationChannel(ch);
             }
 
@@ -762,7 +1366,7 @@ public class MainActivity extends Activity {
             Notification.Builder b = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
                     ? new Notification.Builder(this, CHANNEL_ID)
                     : new Notification.Builder(this);
-            b.setSmallIcon(android.R.drawable.ic_dialog_info)
+            b.setSmallIcon(R.drawable.ic_stat_orbit)
                     .setContentTitle(title)
                     .setContentText(body)
                     .setAutoCancel(true)
@@ -790,5 +1394,25 @@ public class MainActivity extends Activity {
             }
         }
         return super.onKeyDown(keyCode, event);
+    }
+
+    @Override
+    protected void onDestroy() {
+        if (orbitReceiverRegistered) {
+            try {
+                unregisterReceiver(orbitReceiver);
+            } catch (Exception ignored) {
+            }
+            orbitReceiverRegistered = false;
+        }
+        if (downloadReceiverRegistered) {
+            try {
+                unregisterReceiver(downloadReceiver);
+            } catch (Exception ignored) {
+            }
+            downloadReceiverRegistered = false;
+        }
+        orbitExecutor.shutdownNow();
+        super.onDestroy();
     }
 }
